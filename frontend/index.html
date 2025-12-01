@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Projeto Marcos</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;700&family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        gold: '#d4af37',
+                        dark: '#121212',
+                        darker: '#0a0a0a',
+                        card: '#1e1e1e',
+                        input: '#2a2a2a'
+                    },
+                    fontFamily: {
+                        sans: ['Roboto', 'sans-serif'],
+                        display: ['Oswald', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body { background-color: #121212; color: #e5e5e5; }
+        
+        .fade-in { animation: fadeIn 0.4s ease-in-out; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .service-checkbox:checked + div {
+            border-color: #d4af37;
+            background-color: rgba(212, 175, 55, 0.1);
+        }
+        
+        .time-radio:checked + div {
+            background-color: #d4af37;
+            color: #000;
+            border-color: #d4af37;
+            font-weight: bold;
+        }
+
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0a0a0a; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #d4af37; }
+        .hide-scroll::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body class="h-screen overflow-hidden font-sans">
+
+    <section id="auth-screen" class="w-full h-full flex items-center justify-center bg-[url('https://images.unsplash.com/photo-1638383257225-f810a62c634e?q=80&w=1287&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D')] bg-cover bg-center relative">
+        <div class="absolute inset-0 bg-darker/90"></div> <div class="relative z-10 w-full max-w-md p-6 fade-in">
+            <div class="text-center mb-8">
+                <h1 class="font-display text-5xl text-gold font-bold tracking-wider mb-2">MARCOS<br><span class="text-white text-3xl">BARBEARIA</span></h1> <br> 
+                <p class="text-gray-400">Entre para agendar seu serviço. </p>
+            </div>
+
+            <div class="bg-card border border-gray-800 p-8 rounded-2xl shadow-2xl">
+                
+                <form id="login-form" class="space-y-6" onsubmit="event.preventDefault(); handleLogin();">
+                    <h2 class="text-2xl text-white font-display">Login</h2>
+                    
+                    <div>
+                        <label class="block text-xs text-gold uppercase mb-1">Email</label>
+                        <div class="flex items-center bg-input rounded-lg border border-gray-700 px-3 py-3">
+                            <i class="fa-solid fa-envelope text-gray-500 mr-3"></i>
+                            <input type="email" id="login-email" class="bg-transparent w-full text-white focus:outline-none" placeholder="seu@email.com" required>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs text-gold uppercase mb-1">Senha</label>
+                        <div class="flex items-center bg-input rounded-lg border border-gray-700 px-3 py-3">
+                            <i class="fa-solid fa-lock text-gray-500 mr-3"></i>
+                            <input type="password" id="login-pass" class="bg-transparent w-full text-white focus:outline-none" placeholder="******" required>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="w-full bg-gold hover:bg-yellow-600 text-darker font-bold py-3 rounded-lg transition-transform hover:scale-105">
+                        ENTRAR
+                    </button>
+                    
+                    <p class="text-center text-sm text-gray-400 mt-4">
+                        Não tem conta? <a href="#" onclick="toggleAuthMode()" class="text-gold hover:underline">Registre-se</a>
+                    </p>
+                </form>
+
+                <form id="register-form" class="space-y-6 hidden" onsubmit="event.preventDefault(); handleRegister();">
+                    <h2 class="text-2xl text-white font-display">Criar Conta</h2>
+                    
+                    <div>
+                        <label class="block text-xs text-gold uppercase mb-1">Nome Completo</label>
+                        <div class="flex items-center bg-input rounded-lg border border-gray-700 px-3 py-3">
+                            <i class="fa-solid fa-user text-gray-500 mr-3"></i>
+                            <input type="text" id="reg-name" class="bg-transparent w-full text-white focus:outline-none" placeholder="Seu Nome" required>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs text-gold uppercase mb-1">Email</label>
+                        <div class="flex items-center bg-input rounded-lg border border-gray-700 px-3 py-3">
+                            <i class="fa-solid fa-envelope text-gray-500 mr-3"></i>
+                            <input type="email" id="reg-email" class="bg-transparent w-full text-white focus:outline-none" placeholder="seu@email.com" required>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs text-gold uppercase mb-1">Senha</label>
+                        <div class="flex items-center bg-input rounded-lg border border-gray-700 px-3 py-3">
+                            <i class="fa-solid fa-lock text-gray-500 mr-3"></i>
+                            <input type="password" id="reg-pass" class="bg-transparent w-full text-white focus:outline-none" placeholder="******" required>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="w-full bg-gold hover:bg-yellow-600 text-darker font-bold py-3 rounded-lg transition-transform hover:scale-105">
+                        CADASTRAR
+                    </button>
+                    
+                    <p class="text-center text-sm text-gray-400 mt-4">
+                        Já tem conta? <a href="#" onclick="toggleAuthMode()" class="text-gold hover:underline">Faça Login</a>
+                    </p>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <div id="app-screen" class="hidden flex-col md:flex-row h-screen overflow-hidden">
+        
+        <nav class="bg-darker border-r border-gray-800 w-full md:w-64 h-16 md:h-full fixed bottom-0 md:relative z-50 flex md:flex-col justify-between items-center md:items-start p-0 md:p-6 shadow-2xl md:shadow-none">
+            
+            <div class="hidden md:block mb-10 w-full">
+                <h1 class="font-display text-3xl text-gold font-bold tracking-wider mb-6">MARCOS<br><span class="text-white text-xl">BARBEARIA</span></h1>
+                
+                <div class="bg-gray-900 rounded-lg p-3 flex items-center gap-3 border border-gray-800">
+                    <div class="w-5 h-5 rounded-full bg-gold text-darker flex items-center justify-center font-bold" id="user-avatar">U</div>
+                    <div class="overflow-hidden">
+                        <p class="text-white text-sm font-bold truncate" id="user-name-display">Usuário</p>
+                        <button onclick="logout()" class="text-xs text-red-400 hover:text-red-300 flex items-center gap-1">
+                            <i class="fa-solid fa-right-from-bracket"></i> Sair
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <button onclick="logout()" class="md:hidden absolute top-[-50px] right-4 bg-red-900/80 text-white p-2 rounded-full w-8 h-8 flex items-center justify-center text-xs border border-red-500">
+                <i class="fa-solid fa-power-off"></i>
+            </button>
+
+            <div class="flex md:flex-col justify-around w-full md:w-auto md:space-y-4 h-full md:h-auto items-center md:items-start">
+                <button onclick="switchTab('home')" id="nav-home" class="nav-item group flex flex-col md:flex-row items-center md:space-x-3 p-2 md:p-3 rounded-lg w-full text-gold bg-gray-800 md:bg-transparent transition-all hover:bg-gray-800">
+                    <i class="fa-solid fa-house text-xl mb-1 md:mb-0"></i>
+                    <span class="text-xs md:text-base font-medium">Inicio</span>
+                </button>
+                <button onclick="switchTab('agendar')" id="nav-agendar" class="nav-item group flex flex-col md:flex-row items-center md:space-x-3 p-2 md:p-3 rounded-lg w-full text-gray-400 hover:text-gold transition-all hover:bg-gray-800">
+                    <i class="fa-solid fa-scissors text-xl mb-1 md:mb-0"></i>
+                    <span class="text-xs md:text-base font-medium">Agendar</span>
+                </button>
+                <button onclick="switchTab('historico')" id="nav-historico" class="nav-item group flex flex-col md:flex-row items-center md:space-x-3 p-2 md:p-3 rounded-lg w-full text-gray-400 hover:text-gold transition-all hover:bg-gray-800">
+                    <i class="fa-solid fa-clock-rotate-left text-xl mb-1 md:mb-0"></i>
+                    <span class="text-xs md:text-base font-medium">Histórico</span>
+                </button>
+            </div>
+
+            <div class="hidden md:block text-gray-500 text-xs mt-auto">
+                &copy; 2025 PROJETO MARCOS
+            </div>
+        </nav>
+
+        <main class="flex-1 h-full overflow-y-auto pb-20 md:pb-0 bg-dark relative">
+            
+            <div class="md:hidden flex items-center justify-between p-4 bg-darker border-b border-gray-800 sticky top-0 z-40">
+                <h1 class="font-display text-xl text-gold font-bold">W. NUNES BARBEARIA</h1>
+                <span class="text-xs text-gray-400" id="mobile-user-display">Olá, Usuário</span>
+            </div>
+
+            <section id="tab-home" class="tab-content fade-in p-6 md:p-12 min-h-full flex flex-col justify-center items-start relative overflow-hidden">
+                <div class="absolute top-0 right-0 w-full h-full opacity-10 pointer-events-none">
+                    <img src="https://images.unsplash.com/photo-1628099003488-98aa1c9405e3?q=80&w=1287&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" class="w-full h-full object-cover">
+                </div>
+                <div class="relative z-10 max-w-2xl">
+                    <span class="text-gold font-bold tracking-widest uppercase text-sm mb-2 block">Estilo & Qualidade</span>
+                    <h2 class="font-display text-5xl md:text-7xl text-white font-bold leading-tight mb-6">O CUIDADO QUE <br> VOCÊ MERECE.</h2>
+                    <p class="text-gray-400 text-lg mb-8 max-w-md">Profissionais experientes, ambiente climatizado e cortes de alta precisão. Agende seu horário agora mesmo.</p>
+                    <button onclick="switchTab('agendar')" class="bg-gold hover:bg-yellow-600 text-darker font-bold py-4 px-8 rounded-full transition-transform transform hover:scale-105 shadow-lg flex items-center gap-2">
+                        <i class="fa-solid fa-calendar-check"></i> AGENDAR CORTE
+                    </button>
+                </div>
+                
+                <div class="mt-8 bg-card/80 backdrop-blur-md border border-gray-700 p-5 rounded-xl w-full max-w-sm shadow-2xl relative overflow-hidden group z-10">
+                    <div class="absolute top-0 right-0 w-20 h-20 bg-gold blur-3xl opacity-20 group-hover:opacity-40 transition-opacity"></div>
+                    
+                    <div class="flex justify-between items-end mb-3">
+                        <div>
+                            <h3 class="text-white font-display text-lg">Programa Fidelidade</h3>
+                            <p class="text-xs text-gray-400">Complete 10 cortes e ganhe 1 grátis!</p>
+                        </div>
+                        <div class="text-gold font-bold text-2xl" id="loyalty-count">0/10</div>
+                    </div>
+
+                    <div class="w-full bg-gray-800 rounded-full h-3 mb-4 overflow-hidden">
+                        <div id="loyalty-bar" class="bg-gradient-to-r from-yellow-600 to-gold h-full rounded-full transition-all duration-1000" style="width: 0%"></div>
+                    </div>
+
+                    <div class="grid grid-cols-10 gap-1 text-center" id="loyalty-stamps">
+                        </div>
+                </div>
+
+            </section>
+
+            <section id="tab-agendar" class="tab-content hidden fade-in p-6 md:p-12 max-w-4xl mx-auto">
+                <h2 class="font-display text-3xl text-white mb-2">Novo Agendamento</h2>
+                <p class="text-gray-400 mb-8">Preencha as informações abaixo para garantir seu horário.</p>
+
+                <form id="booking-form" onsubmit="event.preventDefault(); confirmarAgendamento();">
+                    <div class="mb-8">
+                        <h3 class="text-gold font-bold mb-4 flex items-center gap-2"><span class="bg-gray-800 w-6 h-6 rounded-full flex items-center justify-center text-xs">1</span> Escolha o Profissional</h3>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4" id="barber-list"></div>
+                    </div>
+                    <div class="mb-8">
+                        <h3 class="text-gold font-bold mb-4 flex items-center gap-2"><span class="bg-gray-800 w-6 h-6 rounded-full flex items-center justify-center text-xs">2</span> Selecione os Serviços</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3" id="services-list"></div>
+                    </div>
+                    <div class="mb-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div>
+                            <h3 class="text-gold font-bold mb-4 flex items-center gap-2"><span class="bg-gray-800 w-6 h-6 rounded-full flex items-center justify-center text-xs">3</span> Selecione a Data</h3>
+                            <select id="date-select" class="w-full bg-card border border-gray-700 text-white p-4 rounded-lg focus:outline-none focus:border-gold" required onchange="renderTimeSlots()">
+                                <option value="" disabled selected>Escolha o profissional primeiro</option>
+                            </select>
+                        </div>
+                        <div>
+                            <h3 class="text-gold font-bold mb-4 flex items-center gap-2"><i class="fa-regular fa-clock"></i> Horários Disponíveis</h3>
+                            <div class="grid grid-cols-4 gap-2" id="time-slots">
+                                <p class="text-gray-500 text-sm col-span-4 italic">Selecione uma data primeiro.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="submit" class="w-full bg-gold hover:bg-yellow-600 text-darker font-bold py-4 rounded-lg shadow-lg transition-all text-lg mt-4" id="btn-confirm">
+                        CONFIRMAR AGENDAMENTO
+                    </button>
+                </form>
+            </section>
+
+            <section id="tab-historico" class="tab-content hidden fade-in p-6 md:p-12 max-w-4xl mx-auto">
+                <div class="flex justify-between items-end mb-8">
+                    <div>
+                        <h2 class="font-display text-3xl text-white mb-2">Meus Agendamentos</h2>
+                        <p class="text-gray-400">Acompanhe seus próximos serviços.</p>
+                    </div>
+                </div>
+                
+                <div id="history-list" class="space-y-4"></div>
+            </section>
+
+
+        </main>
+    </div>
+
+    <div id="success-modal" class="fixed inset-0 flex items-center justify-center z-50 hidden bg-black bg-opacity-80 backdrop-blur-sm">
+        <div class="bg-card border border-gold p-8 rounded-2xl text-center max-w-sm mx-4 shadow-2xl">
+            <div class="w-16 h-16 bg-gold rounded-full flex items-center justify-center mx-auto mb-4 text-darker text-3xl"><i class="fa-solid fa-check"></i></div>
+            <h3 class="text-2xl font-display text-white mb-2">Agendado!</h3>
+            <p class="text-gray-400 mb-6">Serviço confirmado. Verifique se as informações estão corretas no Histórico, você tem 5 minutos para editar.</p>
+            <button onclick="fecharModal()" class="bg-white text-darker font-bold py-2 px-6 rounded-lg hover:bg-gray-200 w-full">Ver Histórico</button>
+        </div>
+    </div>
+
+    <script>
+        // --- DADOS DO SISTEMA ---
+        const barbers = [
+            { id: 1, name: 'Renan Silva', img: 'https://randomuser.me/api/portraits/men/32.jpg', rating: 5.0 },
+            { id: 2, name: 'Marcos Dias', img: 'https://randomuser.me/api/portraits/men/33.jpg', rating: 5.0 },
+            { id: 3, name: 'André Luiz', img: 'https://randomuser.me/api/portraits/men/36.jpg', rating: 5.0 },
+            { id: 4, name: 'Júnior', img: 'https://randomuser.me/api/portraits/men/50.jpg', rating: 5.0 },
+        ];
+        const services = [
+            { id: 'corte', name: 'Corte de Cabelo', price: 50.00, icon: 'fa-scissors' },
+            { id: 'barba', name: 'Barba Modelada', price: 40.00, icon: 'fa-face-smile' },
+            { id: 'combo', name: 'Combo (Cabelo + Barba)', price: 80.00, icon: 'fa-user-tie' },
+            { id: 'pigmentacao', name: 'Pigmentação', price: 35.00, icon: 'fa-fill-drip' },
+            { id: 'sobrancelha', name: 'Sobrancelha', price: 20.00, icon: 'fa-eye' },
+            { id: 'pezinho', name: 'Pezinho / Acabamento', price: 15.00, icon: 'fa-ruler-horizontal' },
+        ];
+
+        // --- ESTADO DO USUÁRIO ---
+        let currentUser = null; // { email, name }
+        let selectedBarber = null;
+        let selectedServices = [];
+        let selectedTime = null;
+        // let selectedDate = null; // Não necessário como variável global, mas pode ser usado se preferir.
+
+        window.onload = () => {
+            checkLogin();
+            renderBarbers();
+            renderServices();
+            // A data mínima não é mais necessária no select, pois as datas serão carregadas dinamicamente.
+            // const today = new Date().toISOString().split('T')[0];
+            // document.getElementById('date-input').setAttribute('min', today); 
+        };
+
+        // ... [Restante das funções de Login/Logout] ...
+        
+        function toggleAuthMode() {
+            const loginForm = document.getElementById('login-form');
+            const regForm = document.getElementById('register-form');
+            loginForm.classList.toggle('hidden');
+            regForm.classList.toggle('hidden');
+        }
+
+        function handleRegister() {
+            const name = document.getElementById('reg-name').value;
+            const email = document.getElementById('reg-email').value;
+            const pass = document.getElementById('reg-pass').value;
+
+            if(!name || !email || !pass) return alert("Preencha todos os campos.");
+
+            // Verifica se usuário já existe
+            const users = JSON.parse(localStorage.getItem('barberUsers') || '[]');
+            if(users.find(u => u.email === email)) {
+                return alert("Email já cadastrado.");
+            }
+
+            // Cria novo usuário
+            const newUser = { name, email, pass };
+            users.push(newUser);
+            localStorage.setItem('barberUsers', JSON.stringify(users));
+
+            alert("Conta criada com sucesso! Faça login.");
+            toggleAuthMode();
+        }
+
+        function handleLogin() {
+            const email = document.getElementById('login-email').value;
+            const pass = document.getElementById('login-pass').value;
+
+            const users = JSON.parse(localStorage.getItem('barberUsers') || '[]');
+            const user = users.find(u => u.email === email && u.pass === pass);
+
+            if(user) {
+                // Login Sucesso
+                loginUser(user);
+            } else {
+                alert("Email ou senha incorretos.");
+            }
+        }
+
+        function loginUser(user) {
+            currentUser = user;
+            localStorage.setItem('barberCurrentUser', JSON.stringify(user));
+            
+            // --- LÓGICA DE REDIRECIONAMENTO DO ADMIN ---
+            if (user.email === 'Barbeiro2003@gmail.com') {
+                window.location.href = 'painel.html'; 
+                return; 
+            }
+            // -------------------------------------------
+
+            // Atualiza UI normal
+            document.getElementById('user-name-display').innerText = user.name;
+            document.getElementById('mobile-user-display').innerText = `Olá, ${user.name.split(' ')[0]}`;
+            document.getElementById('user-avatar').innerText = user.name.charAt(0).toUpperCase();
+
+            // Troca Telas
+            document.getElementById('auth-screen').classList.add('hidden');
+            document.getElementById('app-screen').classList.remove('hidden');
+            document.getElementById('app-screen').classList.add('flex');
+            
+            renderHistory();
+            renderLoyaltyCard(); // Renderiza o cartão fidelidade
+            switchTab('home');
+        }
+
+
+        function checkLogin() {
+            const savedUser = localStorage.getItem('barberCurrentUser');
+            if(savedUser) {
+                loginUser(JSON.parse(savedUser));
+            } else {
+                document.getElementById('app-screen').classList.remove('flex');
+                document.getElementById('app-screen').classList.add('hidden');
+                document.getElementById('auth-screen').classList.remove('hidden');
+            }
+        }
+
+        function logout() {
+            if(confirm("Deseja realmente sair?")) {
+                localStorage.removeItem('barberCurrentUser');
+                currentUser = null;
+                location.reload(); // Recarrega para limpar estado
+            }
+        }
+
+        // --- SISTEMA DA BARBEARIA ---
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.nav-item').forEach(el => {
+                el.classList.remove('text-gold', 'bg-gray-800');
+                el.classList.add('text-gray-400');
+                if(window.innerWidth >= 768) el.classList.add('md:bg-transparent');
+            });
+            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+            const activeBtn = document.getElementById(`nav-${tabId}`);
+            activeBtn.classList.remove('text-gray-400', 'md:bg-transparent');
+            activeBtn.classList.add('text-gold', 'bg-gray-800');
+            
+            if (tabId === 'historico') {
+                renderHistory();
+            }
+        }
+
+        function renderBarbers() {
+            const container = document.getElementById('barber-list');
+            container.innerHTML = barbers.map(barber => `
+                <label class="cursor-pointer group relative">
+                    <input type="radio" name="barber" value="${barber.id}" class="peer sr-only" onchange="selectedBarber = ${barber.id}; loadAvailableDates();">
+                    <div class="bg-card border-2 border-transparent p-4 rounded-xl text-center hover:bg-gray-800 transition-all peer-checked:border-gold peer-checked:bg-gray-800">
+                        <img src="${barber.img}" class="w-16 h-16 rounded-full mx-auto mb-3 object-cover border-2 border-gray-700 peer-checked:border-gold">
+                        <h4 class="font-bold text-white text-sm">${barber.name}</h4>
+                        <div class="text-gold text-xs mt-1"><i class="fa-solid fa-star"></i> ${barber.rating}</div>
+                    </div>
+                </label>
+            `).join('');
+        }
+        
+        // NOVO: Função para carregar apenas as datas com horário ativo
+        function loadAvailableDates() {
+            // 1. Resetar o select de datas e horários
+            selectedTime = null;
+            document.getElementById('time-slots').innerHTML = '<p class="text-gray-500 text-sm col-span-4 italic">Selecione uma data acima.</p>';
+            
+            const dateSelect = document.getElementById('date-select');
+            dateSelect.innerHTML = '<option value="" disabled selected>Carregando datas...</option>';
+
+            if (!selectedBarber) {
+                dateSelect.innerHTML = '<option value="" disabled selected>Escolha o profissional primeiro</option>';
+                return;
+            }
+            
+            const barberObj = barbers.find(b => b.id === selectedBarber);
+            const barberName = barberObj.name;
+            const today = new Date().setHours(0,0,0,0); // Data de hoje à meia-noite
+
+            // 2. Coletar datas ativas no LocalStorage
+            const availableDates = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                // Busca por chaves do formato scheduleConfig_YYYY-MM-DD_BarberName
+                if (key.startsWith('scheduleConfig_') && key.endsWith(`_${barberName}`)) {
+                    const dateStr = key.split('_')[1];
+                    const activeSlots = JSON.parse(localStorage.getItem(key));
+                    
+                    const dateObj = new Date(`${dateStr}T00:00:00`);
+                    
+                    // Verifica se há slots ativos E se a data não é passada
+                    if (activeSlots && activeSlots.length > 0 && dateObj >= today) {
+                        availableDates.push(dateStr);
+                    }
+                }
+            }
+            
+            // 3. Ordenar datas e popular o select
+            availableDates.sort();
+            
+            dateSelect.innerHTML = '<option value="" disabled selected>Selecione a Data</option>';
+
+            availableDates.forEach(dateStr => {
+                const dateObj = new Date(dateStr);
+                const displayDate = dateObj.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+                const weekday = dateObj.toLocaleDateString('pt-BR', { weekday: 'short' });
+
+                const option = document.createElement('option');
+                option.value = dateStr; // YYYY-MM-DD para consistência
+                option.textContent = `${displayDate} (${weekday})`;
+                dateSelect.appendChild(option);
+            });
+            
+            if (availableDates.length === 0) {
+                dateSelect.innerHTML = '<option value="" disabled selected>Sem datas disponíveis!</option>';
+            }
+        }
+
+
+        function renderServices() {
+            const container = document.getElementById('services-list');
+            container.innerHTML = services.map(service => `
+                <label class="cursor-pointer relative block">
+                    <input type="checkbox" value="${service.id}" class="peer sr-only service-checkbox" onchange="toggleService('${service.id}', '${service.name}', ${service.price})">
+                    <div class="bg-card border border-gray-700 p-4 rounded-lg flex justify-between items-center transition-all hover:bg-gray-800">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center text-gold"><i class="fa-solid ${service.icon}"></i></div>
+                            <div>
+                                <h4 class="font-bold text-white text-sm">${service.name}</h4>
+                                <p class="text-xs text-gray-400">R$ ${service.price.toFixed(2).replace('.', ',')}</p>
+                            </div>
+                        </div>
+                        <div class="w-5 h-5 rounded-full border border-gray-500 peer-checked:bg-gold peer-checked:border-gold"></div>
+                    </div>
+                </label>
+            `).join('');
+        }
+
+        function toggleService(id, name, price) {
+            const index = selectedServices.findIndex(s => s.id === id);
+            if (index > -1) selectedServices.splice(index, 1);
+            else selectedServices.push({ id, name, price });
+        }
+        
+        // --- LÓGICA DE ESCALA E ANTI-CONFLITO ---
+        function getGlobalBookings(date, barberName) {
+            const allUsers = JSON.parse(localStorage.getItem('barberUsers') || '[]');
+            let bookedTimes = [];
+
+            allUsers.forEach(user => {
+                const hKey = `barberHistory_${user.email}`;
+                const uHistory = JSON.parse(localStorage.getItem(hKey) || '[]');
+                
+                // Filtra agendamentos ativos na data e com o barbeiro
+                const matches = uHistory.filter(h => 
+                    h.date === date && 
+                    h.barber === barberName && 
+                    h.status !== 'Cancelado'
+                );
+                
+                matches.forEach(m => bookedTimes.push(m.time));
+            });
+
+            return bookedTimes;
+        }
+
+        // FUNÇÃO ATUALIZADA: Lê a data do novo select
+        function renderTimeSlots() {
+            const dateSelect = document.getElementById('date-select');
+            const date = dateSelect.value;
+            const container = document.getElementById('time-slots');
+            selectedTime = null; // Reseta o horário selecionado
+
+            
+            if(!date) return;
+            if(!selectedBarber) {
+                container.innerHTML = '<p class="text-red-400 text-sm col-span-4">Selecione um profissional primeiro.</p>';
+                return;
+            }
+
+            const barberObj = barbers.find(b => b.id === selectedBarber);
+            const defaultSlots = ['09:00', '10:00', '11:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00'];
+
+            // 1. Verifica CONFIGURAÇÃO DO BARBEIRO (Lê a escala para a data selecionada)
+            const scheduleKey = `scheduleConfig_${date}_${barberObj.name}`;
+            const adminConfig = JSON.parse(localStorage.getItem(scheduleKey));
+            
+            // Slots que o admin marcou como disponíveis (ou todos por padrão)
+            const availableSlots = adminConfig !== null ? adminConfig : defaultSlots;
+
+            if(availableSlots.length === 0) {
+                container.innerHTML = '<div class="col-span-4 text-center py-4 bg-gray-800 rounded text-gray-400">Profissional não atenderá neste horário.</div>';
+                return;
+            }
+
+            // 2. Verifica AGENDAMENTOS GLOBAIS (Anti-Conflito)
+            const bookedTimes = getGlobalBookings(date, barberObj.name);
+
+            // Renderiza
+            container.innerHTML = defaultSlots.map(time => { 
+                const isTaken = bookedTimes.includes(time);
+                const isAdminBlocked = !availableSlots.includes(time);
+                
+                // Verifica se é uma data de hoje, e se o horário já passou
+                const isToday = new Date().toISOString().split('T')[0] === date;
+                const isPast = isToday && new Date(`${date}T${time}`) < new Date();
+
+                const isUnavailable = isTaken || isAdminBlocked || isPast;
+                
+                if (isUnavailable) {
+                    let title = isPast ? "Horário já passou" : (isTaken ? "Ocupado por outro cliente" : "Bloqueado pelo profissional");
+                    
+                    return `
+                        <div class="text-center py-2 rounded border border-gray-800 bg-gray-900 text-gray-600 text-sm line-through cursor-not-allowed" title="${title}">
+                            ${time}
+                        </div>
+                    `;
+                } else {
+                    // Horário Livre
+                    return `
+                        <label class="cursor-pointer">
+                            <input type="radio" name="time" value="${time}" class="peer sr-only time-radio" onchange="selectedTime = '${time}'">
+                            <div class="text-center py-2 rounded border border-gray-700 text-gray-300 text-sm hover:border-gold transition-colors peer-checked:bg-gold peer-checked:text-darker peer-checked:font-bold">
+                                ${time}
+                            </div>
+                        </label>
+                    `;
+                }
+            }).join('');
+        }
+        // --- FIM LÓGICA DE ESCALA E ANTI-CONFLITO ---
+
+
+        function confirmarAgendamento() {
+            if (!selectedBarber) return alert("Selecione um barbeiro.");
+            if (selectedServices.length === 0) return alert("Selecione um serviço.");
+            
+            // LÊ A DATA DO NOVO SELECT
+            const date = document.getElementById('date-select').value;
+            if (!date) return alert("Selecione uma data.");
+            
+            if (!selectedTime) return alert("Selecione um horário.");
+
+            const barberObj = barbers.find(b => b.id === selectedBarber);
+            const total = selectedServices.reduce((acc, curr) => acc + curr.price, 0);
+
+            // NOVO: Verifica Anti-Conflito no momento da confirmação (segunda checagem)
+            const booked = getGlobalBookings(date, barberObj.name);
+            if (booked.includes(selectedTime)) {
+                 return alert("Este horário acabou de ser reservado por outro cliente. Por favor, escolha outro horário.");
+            }
+
+            const appointment = {
+                id: Date.now(),
+                barber: barberObj.name,
+                barberImg: barberObj.img,
+                services: selectedServices.map(s => s.name).join(', '),
+                date: date,
+                time: selectedTime,
+                total: total,
+                status: 'Confirmado'
+            };
+
+            // Salva no histórico DO USUÁRIO ATUAL
+            const storageKey = `barberHistory_${currentUser.email}`;
+            const history = JSON.parse(localStorage.getItem(storageKey) || '[]');
+            history.unshift(appointment);
+            localStorage.setItem(storageKey, JSON.stringify(history));
+
+            document.getElementById('success-modal').classList.remove('hidden');
+        }
+
+        function fecharModal() {
+            document.getElementById('success-modal').classList.add('hidden');
+            document.getElementById('booking-form').reset();
+            selectedBarber = null;
+            selectedServices = [];
+            selectedTime = null;
+            
+            // RECARREGA OS SELECTS APÓS O AGENDAMENTO
+            document.getElementById('date-select').innerHTML = '<option value="" disabled selected>Escolha o profissional primeiro</option>';
+            document.getElementById('time-slots').innerHTML = '<p class="text-gray-500 text-sm col-span-4 italic">Selecione uma data primeiro.</p>';
+            
+            renderLoyaltyCard(); // Renderiza fidelidade
+            renderHistory();
+            switchTab('historico');
+        }
+
+        // Função para remover um agendamento específico
+        function removeAppointment(id) {
+            if (!currentUser) return;
+            if (!confirm("Deseja realmente remover este agendamento?")) return;
+
+            const storageKey = `barberHistory_${currentUser.email}`;
+            let history = JSON.parse(localStorage.getItem(storageKey) || '[]');
+            
+            // NOVO: Se o agendamento não estiver cancelado, ele é removido. 
+            // Se estiver cancelado, a remoção é feita automaticamente pelo timer.
+            const item = history.find(h => h.id === id);
+            if (item && item.status !== 'Cancelado') {
+                history = history.filter(h => h.id !== id);
+                localStorage.setItem(storageKey, JSON.stringify(history));
+                
+                renderLoyaltyCard(); // Atualiza fidelidade
+                renderHistory();
+                alert("Agendamento removido.");
+            } else if (item && item.status === 'Cancelado') {
+                alert("Este agendamento já está em processo de remoção automática.");
+            }
+        }
+        
+        // --- NOVO: LÓGICA DE EDIÇÃO DE 5 MINUTOS ---
+        function editAppointment(id) {
+            if(!confirm("Você tem 5 minutos para editar. Confirmar edição? O agendamento atual será temporariamente removido para que você possa refazê-lo.")) return;
+
+            // 1. Recupera o agendamento
+            const storageKey = `barberHistory_${currentUser.email}`;
+            let history = JSON.parse(localStorage.getItem(storageKey) || '[]');
+            const item = history.find(h => h.id === id);
+
+            if(!item) return;
+
+            // 2. Remove o item para permitir que o novo seja salvo limpo
+            history = history.filter(h => h.id !== id);
+            localStorage.setItem(storageKey, JSON.stringify(history));
+            
+            selectedServices = []; // Limpa serviços globais
+
+            // 3. Preenche o formulário
+            selectedBarber = barbers.find(b => b.name === item.barber).id;
+            
+            // 4. Redireciona e força a renderização
+            switchTab('agendar');
+            renderBarbers(); 
+            
+            const barberRadio = document.querySelector(`input[name="barber"][value="${selectedBarber}"]`);
+            if(barberRadio) {
+                 barberRadio.checked = true;
+                 barberRadio.dispatchEvent(new Event('change')); // Chama loadAvailableDates()
+            }
+
+            // Atraso necessário para o loadAvailableDates() popular o select antes de tentar selecionar o valor
+            setTimeout(() => {
+                const dateSelect = document.getElementById('date-select');
+                dateSelect.value = item.date;
+                dateSelect.dispatchEvent(new Event('change')); // Chama renderTimeSlots()
+
+                // Tenta pré-selecionar os serviços 
+                item.services.split(', ').forEach(serviceName => {
+                    const service = services.find(s => s.name === serviceName);
+                    if (service) {
+                        const checkbox = document.querySelector(`input[type="checkbox"][value="${service.id}"]`);
+                        if (checkbox) {
+                            checkbox.checked = true;
+                            toggleService(service.id, service.name, service.price); // Atualiza selectedServices
+                        }
+                    }
+                });
+                
+                // Tenta pré-selecionar o horário (renderTimeSlots() já foi chamada)
+                selectedTime = item.time;
+                const timeRadio = document.querySelector(`input[name="time"][value="${selectedTime}"]`);
+                if(timeRadio) timeRadio.checked = true;
+                
+            }, 300); // 300ms de atraso para garantir o carregamento do select.
+
+            alert("Dados do agendamento carregados. Você tem 5 minutos para fazer correções na data/horário/serviços e clicar em CONFIRMAR AGENDAMENTO novamente.");
+        }
+
+        // --- RENDERIZA CARTÃO FIDELIDADE (EXISTENTE) ---
+        function renderLoyaltyCard() {
+            if(!currentUser) return;
+            
+            const storageKey = `barberHistory_${currentUser.email}`;
+            const history = JSON.parse(localStorage.getItem(storageKey) || '[]');
+            
+            const totalCompleted = history.filter(h => h.status === 'Concluído').length; 
+            const count = totalCompleted % 10;
+            
+            document.getElementById('loyalty-count').innerText = `${count}/10`;
+            document.getElementById('loyalty-bar').style.width = `${(count / 10) * 100}%`;
+            
+            let stampsHTML = '';
+            for(let i=1; i<=10; i++) {
+                const isStamped = i <= count || (totalCompleted >= 10 && i === 10 && count === 0);
+                
+                stampsHTML += `
+                    <div class="w-full aspect-square rounded-full flex items-center justify-center text-[10px] font-bold shadow 
+                        ${isStamped ? 'bg-gold text-darker' : 'bg-gray-800 border border-gray-700 text-gray-600'}"
+                        title="${isStamped ? 'Concluído' : i}">
+                        ${isStamped ? '<i class="fa-solid fa-scissors"></i>' : i}
+                    </div>
+                `;
+            }
+            document.getElementById('loyalty-stamps').innerHTML = stampsHTML;
+        }
+
+
+        // FUNÇÃO ATUALIZADA: RENDERIZA HISTÓRICO (COM BLUR E TIMER DE CANCELAMENTO)
+        function renderHistory() {
+            if(!currentUser) return;
+            const storageKey = `barberHistory_${currentUser.email}`;
+            let history = JSON.parse(localStorage.getItem(storageKey) || '[]');
+            const container = document.getElementById('history-list');
+
+            // 1. Limpeza Automática: Remove itens cancelados há mais de 24h
+            const now = new Date().getTime();
+            const oneDay = 24 * 60 * 60 * 1000; // 24 horas em milissegundos
+            
+            const initialLength = history.length;
+            history = history.filter(item => {
+                if (item.status === 'Cancelado' && item.canceledAt) {
+                    const cancelTime = new Date(item.canceledAt).getTime();
+                    // Se passou de 24h, remove do array (retorna false)
+                    return (now - cancelTime) < oneDay;
+                }
+                return true; // Mantém os não cancelados ou sem data definida
+            });
+
+            // Se houve remoção, atualiza o LocalStorage
+            if (history.length !== initialLength) {
+                localStorage.setItem(storageKey, JSON.stringify(history));
+            }
+
+            if (history.length === 0) {
+                container.innerHTML = `<div class="text-center py-20 opacity-50"><i class="fa-regular fa-calendar-xmark text-4xl mb-4"></i><p>Nenhum agendamento encontrado.</p></div>`;
+                return;
+            }
+
+            container.innerHTML = history.map(item => {
+                const dateObj = new Date(item.date);
+                dateObj.setMinutes(dateObj.getMinutes() + dateObj.getTimezoneOffset());
+                const dateFormatted = dateObj.toLocaleDateString('pt-BR');
+
+                // Lógica de Renderização do Cancelado
+                const isCanceled = item.status === 'Cancelado';
+                const isConcluido = item.status === 'Concluído';
+                
+                // CÁLCULO PARA EDIÇÃO (5 minutos = 300000 ms)
+                const createdTime = item.id; 
+                const timeDiff = new Date().getTime() - createdTime;
+                const canEdit = timeDiff < 300000 && !isCanceled && !isConcluido; 
+                
+                // Define o tempo limite para o contador (Data Cancelamento + 24h)
+                let dataExpirationAttribute = '';
+                if (isCanceled && item.canceledAt) {
+                    const expirationTime = new Date(item.canceledAt).getTime() + oneDay;
+                    dataExpirationAttribute = `data-expires="${expirationTime}"`;
+                }
+                
+                let statusClass = 'text-blue-500';
+                if(isCanceled) statusClass = 'text-red-500';
+                if(isConcluido) statusClass = 'text-green-500';
+
+                return `
+                <div class="relative overflow-hidden rounded-r-lg shadow-lg group transition-all duration-300 ${isCanceled ? 'border-l-4 border-red-600' : 'bg-card border-l-4 border-gold'}">
+                    
+                    ${isCanceled ? `
+                        <div class="absolute inset-0 z-30 flex flex-col items-center justify-center bg-darker/80 backdrop-blur-sm text-center p-4">
+                            <h3 class="text-red-500 font-display text-2xl font-bold uppercase tracking-wider mb-2">Serviço Cancelado</h3>
+                            <p class="text-gray-300 text-sm mb-1">Este agendamento será removido em:</p>
+                            <div class="font-mono text-gold text-xl font-bold cancellation-timer" ${dataExpirationAttribute}>
+                                Calculando...
+                            </div>
+                        </div>
+                    ` : ''}
+
+                    <div class="p-7 flex justify-between items-center relative z-10 ${isCanceled ? 'opacity-30 pointer-events-none' : ''}">
+                        
+                        ${!isCanceled ? `
+                        <button onclick="removeAppointment(${item.id})" class="absolute top-1 right-1 w-4 h-4 bg-red-600 hover:bg-red-500 text-white rounded-full flex items-center justify-center shadow z-20" title="Remover agendamento" aria-label="Remover agendamento">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                        ` : ''}
+                        
+                        ${canEdit ? `
+                            <button onclick="editAppointment(${item.id})" class="absolute bottom-4 right-4 text-xs bg-gray-700 hover:bg-white hover:text-darker text-white px-3 py-1 rounded transition-colors shadow z-20 flex items-center gap-1">
+                                <i class="fa-solid fa-pen"></i> Editar (5min)
+                            </button>
+                        ` : ''}
+                        
+
+                        <div class="flex items-center gap-4">
+                            <img src="${item.barberImg}" class="w-12 h-12 rounded-full border border-gray-600">
+                            <div>
+                                <h4 class="font-bold text-white text-lg">${item.barber}</h4>
+                                <p class="text-gray-400 text-sm">${item.services}</p>
+                                <div class="flex items-center gap-3 mt-2 text-xs font-mono text-gold">
+                                    <span class="bg-gray-800 px-2 py-1 rounded"><i class="fa-regular fa-calendar"></i> ${dateFormatted}</span>
+                                    <span class="bg-gray-800 px-2 py-1 rounded"><i class="fa-regular fa-clock"></i> ${item.time}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <span class="block text-xl font-bold text-white">R$ ${item.total.toFixed(2).replace('.', ',')}</span>
+                            <span class="text-xs ${statusClass} font-bold uppercase tracking-wider">${item.status}</span>
+                        </div>
+                    </div>
+                    
+                    ${!isCanceled ? `<div class="absolute inset-0 bg-gradient-to-r from-transparent to-gray-800 opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-0"></div>` : ''}
+                </div>
+            `}).join('');
+
+            // Inicia o contador JS se houver itens cancelados
+            startCancellationTimer();
+        }
+
+        // Função auxiliar para atualizar o contador regressivo em tempo real
+        function startCancellationTimer() {
+            // Limpa intervalo anterior se existir para não duplicar
+            if (window.cancellationInterval) clearInterval(window.cancellationInterval);
+
+            window.cancellationInterval = setInterval(() => {
+                const timers = document.querySelectorAll('.cancellation-timer');
+                
+                if (timers.length === 0) {
+                    // Se não há mais timers, para o intervalo para economizar recursos
+                    clearInterval(window.cancellationInterval);
+                    window.cancellationInterval = null;
+                    return;
+                }
+
+                timers.forEach(timer => {
+                    const expiresAt = parseInt(timer.getAttribute('data-expires'));
+                    const now = new Date().getTime();
+                    const distance = expiresAt - now;
+
+                    if (distance < 0) {
+                        // Tempo acabou: Recarrega a lista (o filtro inicial da renderHistory vai remover o item)
+                        renderHistory();
+                    } else {
+                        // Calcula horas, minutos e segundos
+                        const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                        const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                        const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+                        timer.innerText = `${String(hours).padStart(2, '0')}h ${String(minutes).padStart(2, '0')}m ${String(seconds).padStart(2, '0')}s`;
+                    }
+                });
+            }, 1000);
+        }
+    </script>
+</body>
+</html>

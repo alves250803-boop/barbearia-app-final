@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Projeto Marcos</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;700&family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        gold: '#d4af37',
+                        dark: '#121212',
+                        darker: '#0a0a0a',
+                        card: '#1e1e1e',
+                        input: '#2a2a2a',
+                        success: '#10b981',
+                        danger: '#ef4444'
+                    },
+                    fontFamily: {
+                        sans: ['Roboto', 'sans-serif'],
+                        display: ['Oswald', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body { background-color: #0a0a0a; color: #e5e5e5; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0a0a0a; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #d4af37; }
+        
+        /* Transição suave para o menu mobile */
+        .sidebar-transition { transition: transform 0.3s ease-in-out; }
+    </style>
+</head>
+<body class="h-screen flex overflow-hidden font-sans bg-darker">
+
+    <div id="mobile-overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/80 z-40 hidden md:hidden backdrop-blur-sm"></div>
+
+    <aside id="sidebar" class="sidebar-transition fixed inset-y-0 left-0 w-72 bg-card border-r border-gray-800 flex flex-col z-50 transform -translate-x-full md:relative md:translate-x-0 shadow-2xl md:shadow-none">
+        
+        <button onclick="toggleSidebar()" class="absolute top-4 right-4 text-gray-400 md:hidden hover:text-white">
+            <i class="fa-solid fa-xmark text-2xl"></i>
+        </button>
+
+        <div class="p-6 text-center border-b border-gray-800 mt-8 md:mt-0">
+            <h1 class="font-display text-2xl text-gold font-bold tracking-wider">PAINEL<br><span class="text-white text-lg">ADMINISTRATIVO</span></h1>
+        </div>
+        
+        <div class="p-4 flex items-center gap-3 bg-gray-900 mx-4 mt-6 rounded-lg border border-gray-800">
+            <div class="w-10 h-10 rounded-full bg-gold text-darker flex items-center justify-center font-bold text-lg">B</div>
+            <div>
+                <p class="text-white font-bold text-sm">Barbeiro Chefe</p>
+                <p class="text-xs text-green-500 flex items-center gap-1"><i class="fa-solid fa-circle text-[8px]"></i> Online</p>
+            </div>
+        </div>
+
+        <nav class="flex-1 mt-8 px-4 space-y-2">
+            <button onclick="switchAdminTab('dashboard')" id="btn-dashboard" class="w-full text-left p-3 rounded-lg bg-gold text-darker font-bold flex items-center gap-3 transition-transform hover:scale-105">
+                <i class="fa-solid fa-table-columns"></i> Visão Geral
+            </button>
+            
+            <button onclick="switchAdminTab('escala')" id="btn-escala" class="w-full text-left p-3 rounded-lg text-gray-400 hover:text-gold hover:bg-gray-800 flex items-center gap-3 transition-colors">
+                <i class="fa-regular fa-calendar-check"></i> Gerenciar Escala
+            </button>
+
+            <button onclick="logout()" class="w-full text-left p-3 rounded-lg text-gray-400 hover:text-red-400 hover:bg-gray-800 flex items-center gap-3 transition-colors mt-auto mb-6">
+                <i class="fa-solid fa-right-from-bracket"></i> Sair do Painel
+            </button>
+        </nav>
+
+        <div class="p-4 text-center text-xs text-gray-600 border-t border-gray-800">
+            v1.0.1 - Sistema Admin
+        </div>
+    </aside>
+
+    <main class="flex-1 flex flex-col h-full relative overflow-hidden w-full">
+        <div class="absolute top-0 right-0 w-full h-full opacity-5 pointer-events-none z-0">
+             <img src="https://images.unsplash.com/photo-1628099003488-98aa1c9405e3?q=80&w=1287&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" class="w-full h-full object-cover">
+        </div>
+
+        <header class="h-16 md:h-20 border-b border-gray-800 bg-dark/95 backdrop-blur flex items-center justify-between px-4 md:px-8 z-10 shrink-0">
+            <div class="flex items-center gap-4">
+                <button onclick="toggleSidebar()" class="text-gold text-2xl md:hidden hover:text-white transition-colors">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+                <h2 class="text-xl md:text-2xl font-display text-white">Dashboard</h2>
+            </div>
+            
+            <div class="text-xs md:text-sm text-gray-400 text-right">
+                <span id="current-date" class="block">Carregando...</span>
+            </div>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-4 md:p-8 z-10 w-full relative">
+            
+            <section id="admin-tab-dashboard" class="fade-in space-y-8">
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+                    <div class="bg-card border border-gray-800 p-6 rounded-xl shadow-lg relative overflow-hidden group">
+                        <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                            <i class="fa-solid fa-calendar-check text-5xl md:text-6xl text-gold"></i>
+                        </div>
+                        <p class="text-gray-400 text-xs md:text-sm uppercase tracking-wider mb-1">Agendamentos Hoje</p>
+                        <h3 class="text-3xl md:text-4xl font-display text-white font-bold" id="stat-today">0</h3>
+                    </div>
+
+                    <div class="bg-card border border-gray-800 p-6 rounded-xl shadow-lg relative overflow-hidden group">
+                        <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                            <i class="fa-solid fa-sack-dollar text-5xl md:text-6xl text-green-500"></i>
+                        </div>
+                        <p class="text-gray-400 text-xs md:text-sm uppercase tracking-wider mb-1">Faturamento (Confirmado)</p>
+                        <h3 class="text-3xl md:text-4xl font-display text-white font-bold text-green-400" id="stat-revenue">R$ 0,00</h3>
+                    </div>
+
+                    <div class="bg-card border border-gray-800 p-6 rounded-xl shadow-lg relative overflow-hidden group">
+                        <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                            <i class="fa-solid fa-users text-5xl md:text-6xl text-blue-500"></i>
+                        </div>
+                        <p class="text-gray-400 text-xs md:text-sm uppercase tracking-wider mb-1">Total de Clientes</p>
+                        <h3 class="text-3xl md:text-4xl font-display text-white font-bold" id="stat-clients">0</h3>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="bg-card border border-gray-800 p-6 rounded-xl shadow-lg">
+                        <h3 class="font-display text-white mb-4">Desempenho Semanal</h3>
+                        <canvas id="revenueChart"></canvas>
+                    </div>
+                    <div class="bg-card border border-gray-800 p-6 rounded-xl shadow-lg">
+                        <h3 class="font-display text-white mb-4">Serviços Mais Pedidos</h3>
+                        <canvas id="servicesChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="bg-card border border-gray-800 rounded-xl shadow-xl overflow-hidden flex flex-col h-auto max-h-[600px]">
+                    <div class="p-4 md:p-6 border-b border-gray-800 flex flex-col sm:flex-row justify-between items-start sm:items-center shrink-0 bg-card z-10 gap-3 sm:gap-4">
+                        <h3 class="font-display text-lg md:text-xl text-white">Todos os Agendamentos</h3>
+                        
+                        <div class="flex items-center gap-3 flex-wrap">
+                            <label for="barber-filter" class="text-sm text-gray-400 hidden sm:block">Filtrar:</label>
+                            <select id="barber-filter" onchange="filterAppointments()" class="bg-gray-700 text-white p-2 rounded-lg border border-gray-600 text-sm focus:ring-gold focus:border-gold">
+                                </select>
+                            <button onclick="loadDashboard()" class="text-gold hover:text-white transition-colors text-sm md:text-base"><i class="fa-solid fa-rotate-right"></i> <span class="hidden md:inline">Atualizar</span></button>
+                        </div>
+                        
+                    </div>
+                    
+                    <div class="overflow-x-auto w-full">
+                        <table class="w-full text-left border-collapse min-w-[800px] md:min-w-0">
+                            <thead class="bg-gray-900 sticky top-0">
+                                <tr class="text-gray-400 text-xs md:text-sm uppercase tracking-wider">
+                                    <th class="p-3 md:p-4 font-medium">Data/Hora</th>
+                                    <th class="p-3 md:p-4 font-medium">Cliente</th>
+                                    <th class="p-3 md:p-4 font-medium">Profissional</th>
+                                    <th class="p-3 md:p-4 font-medium">Serviços</th>
+                                    <th class="p-3 md:p-4 font-medium">Valor</th>
+                                    <th class="p-3 md:p-4 font-medium">Status</th>
+                                    <th class="p-3 md:p-4 font-medium text-center">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="appointments-table-body" class="text-sm divide-y divide-gray-800">
+                                </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <div class="h-12 md:hidden"></div>
+            </section>
+        
+            <section id="admin-tab-escala" class="fade-in hidden max-w-4xl mx-auto">
+                <h2 class="font-display text-3xl text-white mb-2">Configurar Escala</h2>
+                <p class="text-gray-400 mb-8">Defina quais dias e horários estarão visíveis para os clientes.</p>
+
+                <div class="bg-card border border-gray-800 p-6 rounded-xl shadow-lg mb-8">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <div>
+                            <label class="block text-xs text-gold uppercase mb-1">1. Selecione o Barbeiro</label>
+                            <select id="schedule-barber" class="w-full bg-input border border-gray-700 text-white p-3 rounded-lg focus:border-gold outline-none" onchange="loadSchedule()">
+                                </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gold uppercase mb-1">2. Selecione a Data</label>
+                            <input type="date" id="schedule-date" class="w-full bg-input border border-gray-700 text-white p-3 rounded-lg focus:border-gold outline-none" onchange="loadSchedule()">
+                        </div>
+                    </div>
+
+                    <div class="mb-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <label class="block text-xs text-gold uppercase">3. Horários Disponíveis</label>
+                            <div class="text-xs space-x-2">
+                                <button onclick="toggleAllSlots(true)" class="text-green-500 hover:underline">Marcar Todos</button>
+                                <button onclick="toggleAllSlots(false)" class="text-red-500 hover:underline">Desmarcar Todos</button>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-4 md:grid-cols-6 gap-3" id="schedule-slots">
+                            </div>
+                    </div>
+
+                    <button onclick="saveSchedule()" class="w-full bg-gold hover:bg-yellow-600 text-darker font-bold py-3 rounded-lg transition-transform hover:scale-105">
+                        SALVAR ESCALA
+                    </button>
+                </div>
+                
+                <div class="bg-blue-900/20 border border-blue-800 p-4 rounded-lg flex gap-3">
+                    <i class="fa-solid fa-circle-info text-blue-400 mt-1"></i>
+                    <p class="text-sm text-gray-300">
+                        Se você desmarcar um horário aqui, ele sumirá instantaneamente do aplicativo do cliente. 
+                        Use isso para folgas, pausas de almoço ou saídas antecipadas.
+                    </p>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <script>
+        // --- FUNÇÃO DE RESPONSIVIDADE (TOGGLE SIDEBAR) ---
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('mobile-overlay');
+            
+            if (sidebar.classList.contains('-translate-x-full')) {
+                sidebar.classList.remove('-translate-x-full');
+                overlay.classList.remove('hidden');
+            } else {
+                sidebar.classList.add('-translate-x-full');
+                overlay.classList.add('hidden');
+            }
+        }
+
+        // --- DADOS DO SISTEMA (COPIADOS DO CLIENTE PARA REUTILIZAÇÃO) ---
+        const barbers = [
+            { id: 1, name: 'Renan Silva', img: 'https://randomuser.me/api/portraits/men/32.jpg', rating: 5.0 },
+            { id: 2, name: 'Marcos Dias', img: 'https://randomuser.me/api/portraits/men/33.jpg', rating: 5.0 },
+            { id: 3, name: 'André Luiz', img: 'https://randomuser.me/api/portraits/men/36.jpg', rating: 5.0 },
+            { id: 4, name: 'Júnior', img: 'https://randomuser.me/api/portraits/men/50.jpg', rating: 5.0 },
+        ];
+
+        // --- CONFIGURAÇÃO DO ADMIN ---
+        const ADMIN_CONFIG = {
+            email: "Barbeiro2003@gmail.com",
+            pass: "Barbeiro"
+        };
+        
+        // --- ESTADO DO FILTRO ---
+        let currentBarberFilterName = 'Todos'; 
+
+        // --- VARIÁVEIS GLOBAIS PARA GRÁFICOS ---
+        let scheduleChartInstance = null;
+        let servicesChartInstance = null;
+
+        window.onload = () => {
+            checkAdminAuth();
+            document.getElementById('current-date').innerText = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
+            renderBarberFilter(); // Renderiza o filtro ao carregar
+            
+            // Inicia na aba Dashboard e carrega os dados/gráficos
+            switchAdminTab('dashboard'); 
+            loadDashboard();
+        };
+
+        // 1. VERIFICAÇÃO DE SEGURANÇA
+        function checkAdminAuth() {
+            const currentUser = JSON.parse(localStorage.getItem('barberCurrentUser'));
+            if (!currentUser || currentUser.email !== ADMIN_CONFIG.email) {
+                alert("Acesso Restrito.");
+                window.location.href = "index.html"; 
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('barberCurrentUser');
+            window.location.href = "index.html";
+        }
+        
+        // --- NAVEGAÇÃO ENTRE ABAS DO ADMIN (NOVA) ---
+        function switchAdminTab(tab) {
+            document.getElementById('admin-tab-dashboard').classList.add('hidden');
+            document.getElementById('admin-tab-escala').classList.add('hidden');
+            
+            document.getElementById('admin-tab-' + tab).classList.remove('hidden');
+            
+            // Atualiza o estilo do botão ativo
+            const btnDashboard = document.getElementById('btn-dashboard');
+            const btnEscala = document.getElementById('btn-escala');
+
+            if(btnDashboard) {
+                btnDashboard.classList.remove('bg-gold', 'text-darker');
+                btnDashboard.classList.add('text-gray-400');
+            }
+            if(btnEscala) {
+                btnEscala.classList.remove('bg-gold', 'text-darker');
+                btnEscala.classList.add('text-gray-400');
+            }
+            
+            const activeBtn = document.getElementById('btn-' + tab);
+            if(activeBtn) {
+                activeBtn.classList.remove('text-gray-400');
+                activeBtn.classList.add('bg-gold', 'text-darker');
+            }
+            
+            if (tab === 'escala') {
+                initScheduleTab();
+            }
+        }
+        
+        // 2. RENDERIZAR E FILTRAR PROFISSIONAIS
+        function renderBarberFilter() {
+            const select = document.getElementById('barber-filter');
+            select.innerHTML = '';
+            
+            // Opção padrão
+            let optionAll = document.createElement('option');
+            optionAll.value = 'Todos';
+            optionAll.textContent = 'Todos os Profissionais';
+            select.appendChild(optionAll);
+
+            barbers.forEach(barber => {
+                let option = document.createElement('option');
+                option.value = barber.name;
+                option.textContent = barber.name;
+                select.appendChild(option);
+            });
+            
+            // Garante que o valor selecionado permaneça após o reload do dashboard
+            select.value = currentBarberFilterName;
+        }
+
+        function filterAppointments() {
+            const select = document.getElementById('barber-filter');
+            currentBarberFilterName = select.value;
+            loadDashboard(); // Recarrega o dashboard para aplicar o filtro
+        }
+
+
+        // 3. CARREGAR DADOS E APLICAR FILTRO
+        function loadDashboard() {
+            const users = JSON.parse(localStorage.getItem('barberUsers') || '[]');
+            let allAppointments = [];
+            let totalRevenue = 0;
+
+            // Coleta todos os agendamentos de todos os usuários
+            users.forEach(user => {
+                const historyKey = `barberHistory_${user.email}`;
+                const history = JSON.parse(localStorage.getItem(historyKey) || '[]');
+                const userAppointments = history.map(apt => ({
+                    ...apt,
+                    clientName: user.name,
+                    clientEmail: user.email
+                }));
+                allAppointments = [...allAppointments, ...userAppointments];
+            });
+
+            // Ordena os agendamentos (mais recentes primeiro)
+            allAppointments.sort((a, b) => {
+                const dateA = new Date(`${a.date}T${a.time}`);
+                const dateB = new Date(`${b.date}T${b.time}`);
+                return dateB - dateA;
+            });
+
+            // --- CÁLCULO DE KPIS ---
+            const todayStr = new Date().toISOString().split('T')[0];
+            const todayCount = allAppointments.filter(a => a.date === todayStr && a.status !== 'Cancelado').length;
+            
+            totalRevenue = allAppointments
+                .filter(a => a.status === 'Concluído' || a.status === 'Confirmado')
+                .reduce((acc, curr) => acc + curr.total, 0);
+
+            document.getElementById('stat-today').innerText = todayCount;
+            document.getElementById('stat-revenue').innerText = `R$ ${totalRevenue.toFixed(2).replace('.', ',')}`;
+            document.getElementById('stat-clients').innerText = users.length;
+            // -------------------------
+
+            // --- RENDERIZA GRÁFICOS (NOVO) ---
+            renderCharts(allAppointments);
+
+            // --- APLICAÇÃO DO FILTRO PARA EXIBIÇÃO ---
+            let appointmentsToDisplay = allAppointments;
+
+            if (currentBarberFilterName !== 'Todos') {
+                appointmentsToDisplay = allAppointments.filter(
+                    apt => apt.barber === currentBarberFilterName
+                );
+            }
+
+            renderTable(appointmentsToDisplay);
+        }
+        
+        // --- LÓGICA DE GRÁFICOS (CHART.JS) - NOVO ---
+        function renderCharts(appointments) {
+            const ctxRevenue = document.getElementById('revenueChart').getContext('2d');
+            const ctxServices = document.getElementById('servicesChart').getContext('2d');
+
+            // Destrói gráficos antigos se existirem para não sobrepor
+            if (scheduleChartInstance) scheduleChartInstance.destroy();
+            if (servicesChartInstance) servicesChartInstance.destroy();
+
+            // 1. Dados para Faturamento (Últimos 7 dias)
+            const last7Days = [...Array(7)].map((_, i) => {
+                const d = new Date();
+                d.setDate(d.getDate() - i);
+                return d.toISOString().split('T')[0];
+            }).reverse();
+
+            const revenueData = last7Days.map(date => {
+                return appointments
+                    .filter(a => a.date === date && (a.status === 'Concluído' || a.status === 'Confirmado'))
+                    .reduce((sum, a) => sum + a.total, 0);
+            });
+
+            scheduleChartInstance = new Chart(ctxRevenue, {
+                type: 'line',
+                data: {
+                    labels: last7Days.map(d => d.split('-').slice(1).join('/')), // Mostra dia/mês
+                    datasets: [{
+                        label: 'Faturamento (R$)',
+                        data: revenueData,
+                        borderColor: '#d4af37',
+                        backgroundColor: 'rgba(212, 175, 55, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { labels: { color: '#fff' } } },
+                    scales: {
+                        y: { grid: { color: '#333' }, ticks: { color: '#aaa' } },
+                        x: { grid: { display: false }, ticks: { color: '#aaa' } }
+                    }
+                }
+            });
+
+            // 2. Dados para Serviços (Contagem simples)
+            const serviceCounts = {};
+            appointments.forEach(a => {
+                if(a.status !== 'Cancelado') {
+                    const servicesList = a.services.split(', '); 
+                    servicesList.forEach(s => {
+                        serviceCounts[s] = (serviceCounts[s] || 0) + 1;
+                    });
+                }
+            });
+
+            servicesChartInstance = new Chart(ctxServices, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(serviceCounts),
+                    datasets: [{
+                        data: Object.values(serviceCounts),
+                        backgroundColor: ['#d4af37', '#10b981', '#3b82f6', '#ef4444', '#8b5cf6'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { position: 'right', labels: { color: '#fff' } } }
+                }
+            });
+        }
+
+        // --- LÓGICA DA ABA ESCALA (NOVA) ---
+        const defaultTimeSlots = ['09:00', '10:00', '11:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00'];
+
+        function initScheduleTab() {
+            // Popula o select de barbeiros na aba Escala
+            const select = document.getElementById('schedule-barber');
+            if (select.children.length === 0 || select.children.length === 1 && select.children[0].value !== barbers[0].name) { 
+                select.innerHTML = barbers.map(b => `<option value="${b.name}">${b.name}</option>`).join('');
+            }
+            
+            // Define data de hoje no input e carrega a escala
+            document.getElementById('schedule-date').value = new Date().toISOString().split('T')[0];
+            loadSchedule();
+        }
+
+        function loadSchedule() {
+            const barberName = document.getElementById('schedule-barber').value;
+            const date = document.getElementById('schedule-date').value;
+            const container = document.getElementById('schedule-slots');
+            
+            // Chave única para salvar a configuração: scheduleConfig_DATA_BARBEIRO
+            const storageKey = `scheduleConfig_${date}_${barberName}`;
+            const savedConfig = JSON.parse(localStorage.getItem(storageKey));
+
+            // Se não tiver config salva, assume que todos os horários padrão estão ativos
+            const activeSlots = savedConfig !== null ? savedConfig : defaultTimeSlots;
+
+            container.innerHTML = defaultTimeSlots.map(time => {
+                const isActive = activeSlots.includes(time);
+                return `
+                    <div onclick="toggleSlotStyle(this)" 
+                        class="cursor-pointer border rounded py-2 text-center text-sm transition-all select-none
+                        ${isActive ? 'bg-green-900/30 border-green-500 text-white' : 'bg-red-900/20 border-red-900 text-gray-500 opacity-50'}"
+                        data-time="${time}" data-active="${isActive}">
+                        ${time}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function toggleSlotStyle(el) {
+            const isActive = el.getAttribute('data-active') === 'true';
+            // Inverte estado
+            if (isActive) {
+                el.setAttribute('data-active', 'false');
+                el.className = "cursor-pointer border rounded py-2 text-center text-sm transition-all select-none bg-red-900/20 border-red-900 text-gray-500 opacity-50";
+            } else {
+                el.setAttribute('data-active', 'true');
+                el.className = "cursor-pointer border rounded py-2 text-center text-sm transition-all select-none bg-green-900/30 border-green-500 text-white";
+            }
+        }
+
+        function toggleAllSlots(enable) {
+            const slots = document.querySelectorAll('#schedule-slots > div');
+            slots.forEach(el => {
+                el.setAttribute('data-active', enable);
+                el.className = enable 
+                    ? "cursor-pointer border rounded py-2 text-center text-sm transition-all select-none bg-green-900/30 border-green-500 text-white"
+                    : "cursor-pointer border rounded py-2 text-center text-sm transition-all select-none bg-red-900/20 border-red-900 text-gray-500 opacity-50";
+            });
+        }
+
+        function saveSchedule() {
+            const barberName = document.getElementById('schedule-barber').value;
+            const date = document.getElementById('schedule-date').value;
+            
+            // Coleta apenas os horários marcados como ativos
+            const activeSlots = [];
+            document.querySelectorAll('#schedule-slots > div').forEach(el => {
+                if(el.getAttribute('data-active') === 'true') {
+                    activeSlots.push(el.getAttribute('data-time'));
+                }
+            });
+
+            const storageKey = `scheduleConfig_${date}_${barberName}`;
+            localStorage.setItem(storageKey, JSON.stringify(activeSlots));
+            
+            alert(`Escala de ${barberName} para ${date} atualizada!`);
+        }
+        // --- FIM LÓGICA DE ESCALA ---
+
+        // 4. RENDERIZAR TABELA (EXISTENTE)
+        function renderTable(appointments) {
+            const tbody = document.getElementById('appointments-table-body');
+            
+            if (appointments.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-gray-500">Nenhum agendamento encontrado${currentBarberFilterName !== 'Todos' ? ' para ' + currentBarberFilterName : ''}.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = appointments.map(apt => {
+                const dateObj = new Date(apt.date);
+                dateObj.setMinutes(dateObj.getMinutes() + dateObj.getTimezoneOffset());
+                const dateFmt = dateObj.toLocaleDateString('pt-BR');
+                
+                let statusClass = "bg-gray-800 text-gray-300";
+                if(apt.status === 'Confirmado') statusClass = "bg-blue-900/50 text-blue-400 border border-blue-800";
+                if(apt.status === 'Concluído') statusClass = "bg-green-900/50 text-green-400 border border-green-800";
+                if(apt.status === 'Cancelado') statusClass = "bg-red-900/50 text-red-400 border border-red-800";
+
+                return `
+                <tr class="hover:bg-gray-900/50 transition-colors">
+                    <td class="p-3 md:p-4 whitespace-nowrap">
+                        <div class="font-bold text-white">${dateFmt}</div>
+                        <div class="text-xs text-gold">${apt.time}</div>
+                    </td>
+                    <td class="p-3 md:p-4 whitespace-nowrap">
+                        <div class="text-white">${apt.clientName}</div>
+                        <div class="text-xs text-gray-500">${apt.clientEmail}</div>
+                    </td>
+                    <td class="p-3 md:p-4 text-gray-300 whitespace-nowrap">${apt.barber}</td>
+                    <td class="p-3 md:p-4">
+                        <div class="text-xs text-gray-400 max-w-[150px] truncate" title="${apt.services}">${apt.services}</div>
+                    </td>
+                    <td class="p-3 md:p-4 font-bold text-white whitespace-nowrap">R$ ${apt.total.toFixed(2).replace('.', ',')}</td>
+                    <td class="p-3 md:p-4 whitespace-nowrap">
+                        <span class="px-2 py-1 rounded-full text-[10px] md:text-xs font-bold uppercase tracking-wide ${statusClass}">${apt.status}</span>
+                    </td>
+                    <td class="p-3 md:p-4 text-center whitespace-nowrap">
+                        <div class="flex items-center justify-center gap-2">
+                            <button onclick="updateStatus('${apt.clientEmail}', ${apt.id}, 'Concluído')" title="Concluir" class="w-7 h-7 md:w-8 md:h-8 rounded bg-green-600 hover:bg-green-500 text-white flex items-center justify-center transition-colors shadow">
+                                <i class="fa-solid fa-check text-xs md:text-sm"></i>
+                            </button>
+                            <button onclick="updateStatus('${apt.clientEmail}', ${apt.id}, 'Cancelado')" title="Cancelar" class="w-7 h-7 md:w-8 md:h-8 rounded bg-red-600 hover:bg-red-500 text-white flex items-center justify-center transition-colors shadow">
+                                <i class="fa-solid fa-xmark text-xs md:text-sm"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                `;
+            }).join('');
+        }
+
+        // 5. ATUALIZAR STATUS (AGORA COM LÓGICA DE CANCELAMENTO)
+        function updateStatus(clientEmail, aptId, newStatus) {
+            if(!confirm(`Deseja alterar o status para ${newStatus}?`)) return;
+
+            const key = `barberHistory_${clientEmail}`;
+            const history = JSON.parse(localStorage.getItem(key) || '[]');
+            
+            const index = history.findIndex(h => h.id === aptId);
+            if (index !== -1) {
+                history[index].status = newStatus;
+                
+                // LÓGICA DE CANCELAMENTO
+                if (newStatus === 'Cancelado') {
+                    history[index].canceledAt = new Date().toISOString();
+                }
+
+                localStorage.setItem(key, JSON.stringify(history));
+                loadDashboard(); 
+            } else {
+                alert("Erro ao encontrar o agendamento.");
+            }
+        }
+    </script>
+</body>
+</html>
