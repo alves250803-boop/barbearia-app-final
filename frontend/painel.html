@@ -253,6 +253,7 @@
 
     // --- Autenticação e autorização ---
     // Este painel exige que o usuário tenha a claim custom 'admin': true
+    let adminAppointmentsUnsub = null;
     auth.onAuthStateChanged(async (user) => {
         if (!user) {
             // não autenticado -> voltar para index
@@ -293,8 +294,10 @@
 
     // --- Dashboard (real-time) ---
     function attachRealtimeDashboard() {
-        // Query appointments in Firestore (admin) - Firestore rules must permitir leitura para admins
-        db.collection('appointments').orderBy('date','desc').orderBy('time','asc').limit(200)
+        // Limpa listener anterior
+        if (adminAppointmentsUnsub) { adminAppointmentsUnsub(); adminAppointmentsUnsub = null; }
+
+        adminAppointmentsUnsub = db.collection('appointments').orderBy('date','desc').orderBy('time','asc').limit(200)
             .onSnapshot(snapshot => {
                 const tbody = document.getElementById('appointments-table-body');
                 tbody.innerHTML = '';
@@ -331,13 +334,22 @@
                     tbody.appendChild(tr);
                 });
 
-                document.getElementById('count-today').innerText = todayCount;
-                document.getElementById('rev-today').innerText = `R$ ${todayRev.toFixed(2)}`;
+                // Atualiza métricas
+                const statTodayEl = document.getElementById('stat-today');
+                const statRevenueEl = document.getElementById('stat-revenue');
+                if (statTodayEl) statTodayEl.innerText = todayCount;
+                if (statRevenueEl) statRevenueEl.innerText = `R$ ${todayRev.toFixed(2)}`;
 
                 // Atualiza KPIs gerais (clientes e filtro)
-                db.collection('users').get().then(uSnap => { document.getElementById('stat-clients').innerText = uSnap.size; }).catch(()=>{});
+                db.collection('users').get().then(uSnap => { const el = document.getElementById('stat-clients'); if(el) el.innerText = uSnap.size; }).catch(()=>{});
                 renderBarberFilter();
             }, err => console.error(err));
+    }
+
+    function loadDashboard() {
+        attachRealtimeDashboard();
+        // também recarrega o filtro e tabela
+        filterAppointments();
     }
 
     function updateStatus(id, status) {
@@ -349,22 +361,22 @@
     function renderBarberFilter() {
         const select = document.getElementById('barber-filter');
         if(!select) return;
+        const current = select.value || 'Todos';
         select.innerHTML = '';
         const opt = document.createElement('option'); opt.value = 'Todos'; opt.textContent = 'Todos os Profissionais'; select.appendChild(opt);
         barbers.forEach(b => { const o = document.createElement('option'); o.value = b.name; o.textContent = b.name; select.appendChild(o); });
+        select.value = current;
     }
 
     function filterAppointments() {
         const sel = document.getElementById('barber-filter');
-        const filter = sel.value;
-        // Simples: reaplica snapshot com filtro (recria listener)
-        // Para simplicidade neste arquivo, apenas recarregamos manualmente aplicando client-side
+        const filter = sel ? sel.value : 'Todos';
         db.collection('appointments').orderBy('date','desc').orderBy('time','asc').limit(500).get().then(snap => {
             let rows = [];
             snap.forEach(d => rows.push({ id: d.id, ...d.data() }));
             if (filter !== 'Todos') rows = rows.filter(r => r.barber === filter);
             renderTableFromArray(rows);
-        });
+        }).catch(e => console.error(e));
     }
 
     function renderTableFromArray(rows) {
@@ -392,6 +404,7 @@
     // --- Escala (schedules) ---
     function initScheduleTab() {
         const sel = document.getElementById('schedule-barber');
+        if(!sel) return;
         sel.innerHTML = barbers.map(b => `<option value="${b.name}">${b.name}</option>`).join('');
         document.getElementById('schedule-date').value = new Date().toISOString().split('T')[0];
         loadSchedule();
@@ -402,7 +415,7 @@
         const date = document.getElementById('schedule-date').value || new Date().toISOString().split('T')[0];
         document.getElementById('schedule-date').value = date;
 
-        
+        db.collection('schedules').doc(`${date}_${barber}`).get().then(doc => {
             const active = doc.exists ? doc.data().slots : defaultTimeSlots;
             const container = document.getElementById('schedule-slots');
             container.innerHTML = defaultTimeSlots.map(time => {
@@ -414,72 +427,66 @@
 
     function toggleSlot(el) {
         const state = el.getAttribute('data-active') === 'true';
-        el.setAttribute('data-active', !state);
-        el.className = !state ? "cursor-pointer border rounded py-2 text-center text-sm select-none bg-green-900/30 border-green-500 text-white" : "cursor-pointer border rounded py-2 text-center text-sm select-none bg-red-900/20 border-red-900 text-gray-600";
+        el.setAttribute('data-active', (!state).toString());
+        el.className = (!state) ? "cursor-pointer border rounded py-2 text-center text-sm select-none bg-green-900/30 border-green-500 text-white" : "cursor-pointer border rounded py-2 text-center text-sm select-none bg-red-900/20 border-red-900 text-gray-600";
     }
 
     function toggleAllSlots(enable) {
         document.querySelectorAll('#schedule-slots > div').forEach(el => {
-            el.setAttribute('data-active', enable);
+            el.setAttribute('data-active', enable.toString());
             el.className = enable ? "cursor-pointer border rounded py-2 text-center text-sm select-none bg-green-900/30 border-green-500 text-white" : "cursor-pointer border rounded py-2 text-center text-sm select-none bg-red-900/20 border-red-900 text-gray-600";
         });
     }
 
     async function saveSchedule() {
-  try {
-    const barber = document.getElementById('schedule-barber').value;
-    const date = document.getElementById('schedule-date').value;
-    const active = [];
+      try {
+        const barber = document.getElementById('schedule-barber').value;
+        const date = document.getElementById('schedule-date').value;
+        const active = [];
 
-    document.querySelectorAll('#schedule-slots > div').forEach(el => {
-      if (el.getAttribute('data-active') === 'true') {
-        active.push(el.getAttribute('data-time'));
-      }
-    });
-
-    const barberName = barber.trim();
-    const docId = `${date}_${barberName}`;
-
-    await db.collection('schedules').doc(docId).set({
-      slots: active,
-      date: date,
-      barber: barberName,
-      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
-
-    const indexRef = db.collection('scheduleIndex').doc(barberName);
-
-    if (active.length > 0) {
-      await indexRef.set({
-        dates: firebase.firestore.FieldValue.arrayUnion(date)
-      }, { merge: true });
-    } else {
-      const idxDoc = await indexRef.get();
-      if (idxDoc.exists) {
-        await indexRef.update({
-          dates: firebase.firestore.FieldValue.arrayRemove(date)
+        document.querySelectorAll('#schedule-slots > div').forEach(el => {
+          if (el.getAttribute('data-active') === 'true') {
+            active.push(el.getAttribute('data-time'));
+          }
         });
 
-        const after = await indexRef.get();
-        const datesArr = after.exists && after.data().dates ? after.data().dates : [];
+        const barberName = barber.trim();
+        const docId = `${date}_${barberName}`;
 
-        if (!after.exists || (Array.isArray(datesArr) && datesArr.length === 0)) {
-          await indexRef.delete().catch(() => {});
+        await db.collection('schedules').doc(docId).set({
+          slots: active,
+          date: date,
+          barber: barberName,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        const indexRef = db.collection('scheduleIndex').doc(barberName);
+
+        if (active.length > 0) {
+          await indexRef.set({
+            dates: firebase.firestore.FieldValue.arrayUnion(date)
+          }, { merge: true });
+        } else {
+          const idxDoc = await indexRef.get();
+          if (idxDoc.exists) {
+            await indexRef.update({
+              dates: firebase.firestore.FieldValue.arrayRemove(date)
+            });
+
+            const after = await indexRef.get();
+            const datesArr = after.exists && after.data().dates ? after.data().dates : [];
+
+            if (!after.exists || (Array.isArray(datesArr) && datesArr.length === 0)) {
+              await indexRef.delete().catch(() => {});
+            }
+          }
         }
+
+        alert('Escala salva com sucesso!');
+      } catch (e) {
+        console.error('Erro ao salvar escala:', e);
+        alert('Erro ao salvar escala: ' + (e.message || e));
       }
-    }
-
-    alert('Escala salva com sucesso!');
-  } catch (e) {
-    console.error('Erro ao salvar escala:', e);
-    alert('Erro ao salvar escala: ' + (e.message || e));
-  }
-}
-);
-
-        db.collection('schedules').doc(`${date}_${barber}`).set({ slots: active })
-            .then(() => alert('Escala salva com sucesso!'))
-            .catch(e => alert('Erro ao salvar: ' + e.message));
     }
 </script>
 </body>
