@@ -3,677 +3,379 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Projeto Marcos</title>
-    
+    <title>Barbearia Marcos - Agendamento</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
     <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;700&family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
+    
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
 
     <script>
         tailwind.config = {
             theme: {
                 extend: {
-                    colors: {
-                        gold: '#d4af37',
-                        dark: '#121212',
-                        darker: '#0a0a0a',
-                        card: '#1e1e1e',
-                        input: '#2a2a2a'
-                    },
-                    fontFamily: {
-                        sans: ['Roboto', 'sans-serif'],
-                        display: ['Oswald', 'sans-serif'],
-                    }
+                    colors: { gold: '#d4af37', dark: '#121212', darker: '#0a0a0a', card: '#1e1e1e', input: '#2a2a2a' },
+                    fontFamily: { sans: ['Roboto', 'sans-serif'], display: ['Oswald', 'sans-serif'] }
                 }
             }
         }
     </script>
-
     <style>
         body { background-color: #121212; color: #e5e5e5; }
-        
         .fade-in { animation: fadeIn 0.4s ease-in-out; }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .service-checkbox:checked + div {
-            border-color: #d4af37;
-            background-color: rgba(212, 175, 55, 0.1);
-        }
-        
-        .time-radio:checked + div {
-            background-color: #d4af37;
-            color: #000;
-            border-color: #d4af37;
-            font-weight: bold;
-        }
-
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #0a0a0a; }
-        ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #d4af37; }
-        .hide-scroll::-webkit-scrollbar { display: none; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .service-checkbox:checked + div { border-color: #d4af37; background-color: rgba(212, 175, 55, 0.1); }
+        .time-radio:checked + div { background-color: #d4af37; color: #000; border-color: #d4af37; font-weight: bold; }
     </style>
 </head>
 <body class="h-screen overflow-hidden font-sans">
 
-    <section id="auth-screen" class="w-full h-full flex items-center justify-center bg-[url('https://images.unsplash.com/photo-1638383257225-f810a62c634e?q=80&w=1287&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D')] bg-cover bg-center relative">
-        <div class="absolute inset-0 bg-darker/90"></div> <div class="relative z-10 w-full max-w-md p-6 fade-in">
-            <div class="text-center mb-8">
-                <h1 class="font-display text-5xl text-gold font-bold tracking-wider mb-2">MARCOS<br><span class="text-white text-3xl">BARBEARIA</span></h1> <br> 
-                <p class="text-gray-400">Entre para agendar seu serviço. </p>
-            </div>
+    <script>
+        // --- SUBSTITUA PELA SUA CONFIGURAÇÃO FIREBASE AQUI ---
+        const firebaseConfig = {
+            apiKey: "SUA_API_KEY_AQUI",
+            authDomain: "SEU_PROJETO.firebaseapp.com",
+            projectId: "SEU_PROJETO_ID",
+            storageBucket: "SEU_PROJETO.appspot.com",
+            messagingSenderId: "NUMERO",
+            appId: "ID_DO_APP"
+        };
+        // -----------------------------------------------------
 
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+    </script>
+
+    <section id="auth-screen" class="w-full h-full flex items-center justify-center bg-[url('https://images.unsplash.com/photo-1638383257225-f810a62c634e?q=80&w=1287')] bg-cover bg-center relative">
+        <div class="absolute inset-0 bg-darker/90"></div>
+        <div class="relative z-10 w-full max-w-md p-6 fade-in">
+            <div class="text-center mb-8">
+                <h1 class="font-display text-5xl text-gold font-bold mb-2">MARCOS<br><span class="text-white text-3xl">BARBEARIA</span></h1>
+                <p class="text-gray-400">Entre para agendar.</p>
+            </div>
             <div class="bg-card border border-gray-800 p-8 rounded-2xl shadow-2xl">
-                
                 <form id="login-form" class="space-y-6" onsubmit="event.preventDefault(); handleLogin();">
                     <h2 class="text-2xl text-white font-display">Login</h2>
-                    
-                    <div>
-                        <label class="block text-xs text-gold uppercase mb-1">Email</label>
-                        <div class="flex items-center bg-input rounded-lg border border-gray-700 px-3 py-3">
-                            <i class="fa-solid fa-envelope text-gray-500 mr-3"></i>
-                            <input type="email" id="login-email" class="bg-transparent w-full text-white focus:outline-none" placeholder="seu@email.com" required>
-                        </div>
-                    </div>
-
-                    <div>
-                        <label class="block text-xs text-gold uppercase mb-1">Senha</label>
-                        <div class="flex items-center bg-input rounded-lg border border-gray-700 px-3 py-3">
-                            <i class="fa-solid fa-lock text-gray-500 mr-3"></i>
-                            <input type="password" id="login-pass" class="bg-transparent w-full text-white focus:outline-none" placeholder="******" required>
-                        </div>
-                    </div>
-
-                    <button type="submit" class="w-full bg-gold hover:bg-yellow-600 text-darker font-bold py-3 rounded-lg transition-transform hover:scale-105">
-                        ENTRAR
-                    </button>
-                    
-                    <p class="text-center text-sm text-gray-400 mt-4">
-                        Não tem conta? <a href="#" onclick="toggleAuthMode()" class="text-gold hover:underline">Registre-se</a>
-                    </p>
+                    <input type="email" id="login-email" class="w-full bg-input rounded p-3 text-white border border-gray-700" placeholder="Email" required>
+                    <input type="password" id="login-pass" class="w-full bg-input rounded p-3 text-white border border-gray-700" placeholder="Senha" required>
+                    <button type="submit" class="w-full bg-gold hover:bg-yellow-600 text-darker font-bold py-3 rounded">ENTRAR</button>
+                    <p class="text-center text-sm text-gray-400 mt-4 cursor-pointer hover:text-white" onclick="toggleAuthMode()">Não tem conta? Registre-se</p>
                 </form>
-
                 <form id="register-form" class="space-y-6 hidden" onsubmit="event.preventDefault(); handleRegister();">
                     <h2 class="text-2xl text-white font-display">Criar Conta</h2>
-                    
-                    <div>
-                        <label class="block text-xs text-gold uppercase mb-1">Nome Completo</label>
-                        <div class="flex items-center bg-input rounded-lg border border-gray-700 px-3 py-3">
-                            <i class="fa-solid fa-user text-gray-500 mr-3"></i>
-                            <input type="text" id="reg-name" class="bg-transparent w-full text-white focus:outline-none" placeholder="Seu Nome" required>
-                        </div>
-                    </div>
-
-                    <div>
-                        <label class="block text-xs text-gold uppercase mb-1">Email</label>
-                        <div class="flex items-center bg-input rounded-lg border border-gray-700 px-3 py-3">
-                            <i class="fa-solid fa-envelope text-gray-500 mr-3"></i>
-                            <input type="email" id="reg-email" class="bg-transparent w-full text-white focus:outline-none" placeholder="seu@email.com" required>
-                        </div>
-                    </div>
-
-                    <div>
-                        <label class="block text-xs text-gold uppercase mb-1">Senha</label>
-                        <div class="flex items-center bg-input rounded-lg border border-gray-700 px-3 py-3">
-                            <i class="fa-solid fa-lock text-gray-500 mr-3"></i>
-                            <input type="password" id="reg-pass" class="bg-transparent w-full text-white focus:outline-none" placeholder="******" required>
-                        </div>
-                    </div>
-
-                    <button type="submit" class="w-full bg-gold hover:bg-yellow-600 text-darker font-bold py-3 rounded-lg transition-transform hover:scale-105">
-                        CADASTRAR
-                    </button>
-                    
-                    <p class="text-center text-sm text-gray-400 mt-4">
-                        Já tem conta? <a href="#" onclick="toggleAuthMode()" class="text-gold hover:underline">Faça Login</a>
-                    </p>
+                    <input type="text" id="reg-name" class="w-full bg-input rounded p-3 text-white border border-gray-700" placeholder="Nome Completo" required>
+                    <input type="email" id="reg-email" class="w-full bg-input rounded p-3 text-white border border-gray-700" placeholder="Email" required>
+                    <input type="password" id="reg-pass" class="w-full bg-input rounded p-3 text-white border border-gray-700" placeholder="Senha (min 6 carac.)" required>
+                    <button type="submit" class="w-full bg-gold hover:bg-yellow-600 text-darker font-bold py-3 rounded">CADASTRAR</button>
+                    <p class="text-center text-sm text-gray-400 mt-4 cursor-pointer hover:text-white" onclick="toggleAuthMode()">Voltar para Login</p>
                 </form>
             </div>
         </div>
     </section>
 
     <div id="app-screen" class="hidden flex-col md:flex-row h-screen overflow-hidden">
-        
-        <nav class="bg-darker border-r border-gray-800 w-full md:w-64 h-16 md:h-full fixed bottom-0 md:relative z-50 flex md:flex-col justify-between items-center md:items-start p-0 md:p-6 shadow-2xl md:shadow-none">
-            
-            <div class="hidden md:block mb-10 w-full">
-                <h1 class="font-display text-3xl text-gold font-bold tracking-wider mb-6">MARCOS<br><span class="text-white text-xl">BARBEARIA</span></h1>
-                
-                <div class="bg-gray-900 rounded-lg p-3 flex items-center gap-3 border border-gray-800">
-                    <div class="w-5 h-5 rounded-full bg-gold text-darker flex items-center justify-center font-bold" id="user-avatar">U</div>
+        <nav class="bg-darker border-r border-gray-800 w-full md:w-64 h-16 md:h-full fixed bottom-0 md:relative z-50 flex md:flex-col justify-between p-6 shadow-2xl">
+            <div class="hidden md:block w-full">
+                <h1 class="font-display text-2xl text-gold font-bold mb-6">MARCOS<br><span class="text-white text-lg">BARBEARIA</span></h1>
+                <div class="bg-gray-900 rounded p-3 flex items-center gap-3 border border-gray-800">
+                    <div class="w-8 h-8 rounded-full bg-gold text-darker flex items-center justify-center font-bold" id="user-avatar">U</div>
                     <div class="overflow-hidden">
-                        <p class="text-white text-sm font-bold truncate" id="user-name-display">Usuário</p>
-                        <button onclick="logout()" class="text-xs text-red-400 hover:text-red-300 flex items-center gap-1">
-                            <i class="fa-solid fa-right-from-bracket"></i> Sair
-                        </button>
+                        <p class="text-white text-sm font-bold truncate" id="user-name-display">Carregando...</p>
+                        <button onclick="logout()" class="text-xs text-red-400 hover:text-red-300">Sair</button>
                     </div>
                 </div>
             </div>
-
-            <button onclick="logout()" class="md:hidden absolute top-[-50px] right-4 bg-red-900/80 text-white p-2 rounded-full w-8 h-8 flex items-center justify-center text-xs border border-red-500">
-                <i class="fa-solid fa-power-off"></i>
-            </button>
-
             <div class="flex md:flex-col justify-around w-full md:w-auto md:space-y-4 h-full md:h-auto items-center md:items-start">
-                <button onclick="switchTab('home')" id="nav-home" class="nav-item group flex flex-col md:flex-row items-center md:space-x-3 p-2 md:p-3 rounded-lg w-full text-gold bg-gray-800 md:bg-transparent transition-all hover:bg-gray-800">
-                    <i class="fa-solid fa-house text-xl mb-1 md:mb-0"></i>
-                    <span class="text-xs md:text-base font-medium">Inicio</span>
-                </button>
-                <button onclick="switchTab('agendar')" id="nav-agendar" class="nav-item group flex flex-col md:flex-row items-center md:space-x-3 p-2 md:p-3 rounded-lg w-full text-gray-400 hover:text-gold transition-all hover:bg-gray-800">
-                    <i class="fa-solid fa-scissors text-xl mb-1 md:mb-0"></i>
-                    <span class="text-xs md:text-base font-medium">Agendar</span>
-                </button>
-                <button onclick="switchTab('historico')" id="nav-historico" class="nav-item group flex flex-col md:flex-row items-center md:space-x-3 p-2 md:p-3 rounded-lg w-full text-gray-400 hover:text-gold transition-all hover:bg-gray-800">
-                    <i class="fa-solid fa-clock-rotate-left text-xl mb-1 md:mb-0"></i>
-                    <span class="text-xs md:text-base font-medium">Histórico</span>
-                </button>
-            </div>
-
-            <div class="hidden md:block text-gray-500 text-xs mt-auto">
-                &copy; 2025 PROJETO MARCOS
+                <button onclick="switchTab('home')" id="nav-home" class="nav-item text-gold font-bold">Início</button>
+                <button onclick="switchTab('agendar')" id="nav-agendar" class="nav-item text-gray-400">Agendar</button>
+                <button onclick="switchTab('historico')" id="nav-historico" class="nav-item text-gray-400">Histórico</button>
             </div>
         </nav>
 
         <main class="flex-1 h-full overflow-y-auto pb-20 md:pb-0 bg-dark relative">
-            
-            <div class="md:hidden flex items-center justify-between p-4 bg-darker border-b border-gray-800 sticky top-0 z-40">
-                <h1 class="font-display text-xl text-gold font-bold">W. NUNES BARBEARIA</h1>
-                <span class="text-xs text-gray-400" id="mobile-user-display">Olá, Usuário</span>
+            <div class="md:hidden p-4 bg-darker border-b border-gray-800 flex justify-between items-center sticky top-0 z-40">
+                <h1 class="text-gold font-bold">MARCOS BARBEARIA</h1>
+                <button onclick="logout()" class="text-red-500 text-xs">Sair</button>
             </div>
 
-            <section id="tab-home" class="tab-content fade-in p-6 md:p-12 min-h-full flex flex-col justify-center items-start relative overflow-hidden">
-                <div class="absolute top-0 right-0 w-full h-full opacity-10 pointer-events-none">
-                    <img src="https://images.unsplash.com/photo-1628099003488-98aa1c9405e3?q=80&w=1287&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" class="w-full h-full object-cover">
-                </div>
+            <section id="tab-home" class="tab-content fade-in p-6 md:p-12 min-h-full flex flex-col justify-center relative">
                 <div class="relative z-10 max-w-2xl">
-                    <span class="text-gold font-bold tracking-widest uppercase text-sm mb-2 block">Estilo & Qualidade</span>
-                    <h2 class="font-display text-5xl md:text-7xl text-white font-bold leading-tight mb-6">O CUIDADO QUE <br> VOCÊ MERECE.</h2>
-                    <p class="text-gray-400 text-lg mb-8 max-w-md">Profissionais experientes, ambiente climatizado e cortes de alta precisão. Agende seu horário agora mesmo.</p>
-                    <button onclick="switchTab('agendar')" class="bg-gold hover:bg-yellow-600 text-darker font-bold py-4 px-8 rounded-full transition-transform transform hover:scale-105 shadow-lg flex items-center gap-2">
-                        <i class="fa-solid fa-calendar-check"></i> AGENDAR CORTE
-                    </button>
+                    <h2 class="font-display text-5xl text-white font-bold mb-6">ESTILO E<br>TRADIÇÃO.</h2>
+                    <button onclick="switchTab('agendar')" class="bg-gold text-darker font-bold py-3 px-8 rounded hover:scale-105 transition">AGENDAR AGORA</button>
                 </div>
-                
-                <div class="mt-8 bg-card/80 backdrop-blur-md border border-gray-700 p-5 rounded-xl w-full max-w-sm shadow-2xl relative overflow-hidden group z-10">
-                    <div class="absolute top-0 right-0 w-20 h-20 bg-gold blur-3xl opacity-20 group-hover:opacity-40 transition-opacity"></div>
-                    
-                    <div class="flex justify-between items-end mb-3">
-                        <div>
-                            <h3 class="text-white font-display text-lg">Programa Fidelidade</h3>
-                            <p class="text-xs text-gray-400">Complete 10 cortes e ganhe 1 grátis!</p>
-                        </div>
-                        <div class="text-gold font-bold text-2xl" id="loyalty-count">0/10</div>
-                    </div>
-
-                    <div class="w-full bg-gray-800 rounded-full h-3 mb-4 overflow-hidden">
-                        <div id="loyalty-bar" class="bg-gradient-to-r from-yellow-600 to-gold h-full rounded-full transition-all duration-1000" style="width: 0%"></div>
-                    </div>
-
-                    <div class="grid grid-cols-10 gap-1 text-center" id="loyalty-stamps">
-                        </div>
-                </div>
-
             </section>
 
             <section id="tab-agendar" class="tab-content hidden fade-in p-6 md:p-12 max-w-4xl mx-auto">
-                <h2 class="font-display text-3xl text-white mb-2">Novo Agendamento</h2>
-                <p class="text-gray-400 mb-8">Preencha as informações abaixo para garantir seu horário.</p>
-
-                <form id="booking-form" onsubmit="event.preventDefault(); confirmarAgendamento();">
-                    <div class="mb-8">
-                        <h3 class="text-gold font-bold mb-4 flex items-center gap-2"><span class="bg-gray-800 w-6 h-6 rounded-full flex items-center justify-center text-xs">1</span> Escolha o Profissional</h3>
-                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4" id="barber-list"></div>
-                    </div>
-                    <div class="mb-8">
-                        <h3 class="text-gold font-bold mb-4 flex items-center gap-2"><span class="bg-gray-800 w-6 h-6 rounded-full flex items-center justify-center text-xs">2</span> Selecione os Serviços</h3>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3" id="services-list"></div>
-                    </div>
-                    <div class="mb-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+                <h2 class="text-3xl text-white font-display mb-6">Novo Agendamento</h2>
+                <form onsubmit="event.preventDefault(); confirmarAgendamento();">
+                    <h3 class="text-gold font-bold mb-3">1. Profissional</h3>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6" id="barber-list"></div>
+                    
+                    <h3 class="text-gold font-bold mb-3">2. Serviços</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6" id="services-list"></div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                         <div>
-                            <h3 class="text-gold font-bold mb-4 flex items-center gap-2"><span class="bg-gray-800 w-6 h-6 rounded-full flex items-center justify-center text-xs">3</span> Selecione a Data</h3>
-                            <select id="date-select" class="w-full bg-card border border-gray-700 text-white p-4 rounded-lg focus:outline-none focus:border-gold" required onchange="renderTimeSlots()">
-                                <option value="" disabled selected>Escolha o profissional primeiro</option>
-                            </select>
+                            <h3 class="text-gold font-bold mb-3">3. Data</h3>
+                            <input type="date" id="date-select" class="w-full bg-input text-white p-3 rounded border border-gray-700" onchange="loadAvailableTimes()">
                         </div>
                         <div>
-                            <h3 class="text-gold font-bold mb-4 flex items-center gap-2"><i class="fa-regular fa-clock"></i> Horários Disponíveis</h3>
+                            <h3 class="text-gold font-bold mb-3">4. Horário</h3>
                             <div class="grid grid-cols-4 gap-2" id="time-slots">
-                                <p class="text-gray-500 text-sm col-span-4 italic">Selecione uma data primeiro.</p>
+                                <p class="text-gray-500 text-sm col-span-4 italic">Selecione data e barbeiro.</p>
                             </div>
                         </div>
                     </div>
-                    <button type="submit" class="w-full bg-gold hover:bg-yellow-600 text-darker font-bold py-4 rounded-lg shadow-lg transition-all text-lg mt-4" id="btn-confirm">
-                        CONFIRMAR AGENDAMENTO
-                    </button>
+
+                    <button type="submit" class="w-full bg-gold text-darker font-bold py-4 rounded mt-4 hover:bg-yellow-600 transition">CONFIRMAR AGENDAMENTO</button>
                 </form>
             </section>
 
             <section id="tab-historico" class="tab-content hidden fade-in p-6 md:p-12 max-w-4xl mx-auto">
-                <div class="flex justify-between items-end mb-8">
-                    <div>
-                        <h2 class="font-display text-3xl text-white mb-2">Meus Agendamentos</h2>
-                        <p class="text-gray-400">Acompanhe seus próximos serviços.</p>
-                    </div>
-                </div>
-                
-                <div id="history-list" class="space-y-4"></div>
+                <h2 class="text-3xl text-white font-display mb-6">Meus Agendamentos</h2>
+                <div id="history-list" class="space-y-4">Carregando...</div>
             </section>
-
-
         </main>
     </div>
 
-    <div id="success-modal" class="fixed inset-0 flex items-center justify-center z-50 hidden bg-black bg-opacity-80 backdrop-blur-sm">
-        <div class="bg-card border border-gold p-8 rounded-2xl text-center max-w-sm mx-4 shadow-2xl">
-            <div class="w-16 h-16 bg-gold rounded-full flex items-center justify-center mx-auto mb-4 text-darker text-3xl"><i class="fa-solid fa-check"></i></div>
-            <h3 class="text-2xl font-display text-white mb-2">Agendado!</h3>
-            <p class="text-gray-400 mb-6">Serviço confirmado. Verifique se as informações estão corretas no Histórico, você tem 5 minutos para editar.</p>
-            <button onclick="fecharModal()" class="bg-white text-darker font-bold py-2 px-6 rounded-lg hover:bg-gray-200 w-full">Ver Histórico</button>
-        </div>
-    </div>
-
     <script>
-    // 1. CONFIGURAÇÃO DA API (ATENÇÃO: SUBSTITUA PELA SUA URL DO RENDER APÓS O DEPLOY DO BACKEND)
-    const API_URL = 'https://barbearia-api-xxxx.onrender.com'; // **MUDAR DEPOIS DE OBTER A URL**
+        // DADOS
+        const barbers = [
+            { name: 'Renan Silva', img: 'https://randomuser.me/api/portraits/men/32.jpg' },
+            { name: 'Marcos Dias', img: 'https://randomuser.me/api/portraits/men/33.jpg' },
+            { name: 'André Luiz', img: 'https://randomuser.me/api/portraits/men/36.jpg' },
+            { name: 'Júnior', img: 'https://randomuser.me/api/portraits/men/50.jpg' }
+        ];
+        const services = [
+            { id: 'corte', name: 'Corte de Cabelo', price: 50 },
+            { id: 'barba', name: 'Barba', price: 40 },
+            { id: 'combo', name: 'Cabelo + Barba', price: 80 }
+        ];
 
-    // VARIÁVEIS GLOBAIS
-    let currentUser = null;
-    let currentToken = null;
+        let selectedBarber = null;
+        let selectedServices = [];
+        let selectedTime = null;
+        let currentUser = null;
 
-    tailwind.config = {
-        theme: {
-            extend: {
-                colors: {
-                    gold: '#d4af37',
-                    dark: '#121212',
-                    darker: '#0a0a0a',
-                    card: '#1e1e1e',
-                    input: '#2a2a2a',
-                    success: '#10b981',
-                    danger: '#ef4444' 
-                },
-                fontFamily: {
-                    sans: ['Roboto', 'sans-serif'],
-                    display: ['Oswald', 'sans-serif'],
+        // AUTH LISTENER
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                currentUser = user;
+                document.getElementById('auth-screen').classList.add('hidden');
+                document.getElementById('app-screen').classList.remove('hidden');
+                document.getElementById('app-screen').classList.add('flex');
+                
+                // Redirecionamento Admin
+                if(user.email === 'barbeiro2003@gmail.com') { // Email em minúsculo
+                    window.location.href = 'painel.html';
                 }
-            }
-        }
-    }
-    
-    // UTILS
-    const $ = selector => document.querySelector(selector);
-    const $$ = selector => document.querySelectorAll(selector);
-    
-    // --- LÓGICA DE NAVEGAÇÃO E AUTENTICAÇÃO ---
 
-    function showSection(id) {
-        $$('.content-section').forEach(section => {
-            section.classList.add('hidden');
-        });
-        $(`#${id}`).classList.remove('hidden');
-    }
-
-    function checkAuth() {
-        currentToken = localStorage.getItem('authToken');
-        currentUser = JSON.parse(localStorage.getItem('currentUser'));
-
-        if (currentToken && currentUser) {
-            // Se for admin, redireciona para o painel.html
-            if (currentUser.role === 'admin') {
-                window.location.href = 'painel.html';
-                return;
-            }
-            // Se for cliente, mostra a tela principal
-            $('#userNameDisplay').innerText = currentUser.name;
-            showSection('main-app');
-            renderHistory();
-        } else {
-            showSection('auth-screen');
-            showSection('login-form'); // Inicia na tela de login
-        }
-    }
-
-    async function handleLogin(e) {
-        e.preventDefault();
-        const email = $('#login-email').value;
-        const password = $('#login-password').value;
-
-        try {
-            const response = await fetch(`${API_URL}/login`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password })
-            });
-
-            const data = await response.json();
-
-            if (response.ok) {
-                // Login com sucesso, salva token e usuário
-                localStorage.setItem('authToken', data.token);
-                localStorage.setItem('currentUser', JSON.stringify(data.user));
-                checkAuth(); // Redireciona ou mostra app
+                document.getElementById('user-name-display').innerText = user.displayName || user.email;
+                renderBarbers();
+                renderServices();
+                loadHistory();
             } else {
-                alert(`Erro no Login: ${data.message || 'Credenciais inválidas.'}`);
+                document.getElementById('app-screen').classList.add('hidden');
+                document.getElementById('app-screen').classList.remove('flex');
+                document.getElementById('auth-screen').classList.remove('hidden');
             }
-        } catch (error) {
-            console.error('Erro de rede:', error);
-            alert('Erro ao conectar com o servidor. Tente novamente.');
-        }
-    }
-
-    async function handleRegister(e) {
-        e.preventDefault();
-        const name = $('#register-name').value;
-        const email = $('#register-email').value;
-        const password = $('#register-password').value;
-
-        try {
-            const response = await fetch(`${API_URL}/register`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, email, password })
-            });
-
-            const data = await response.json();
-
-            if (response.ok) {
-                alert('Registro bem-sucedido! Faça login.');
-                showSection('login-form');
-            } else {
-                alert(`Erro no Registro: ${data.message || 'Email já cadastrado ou erro no servidor.'}`);
-            }
-        } catch (error) {
-            console.error('Erro de rede:', error);
-            alert('Erro ao conectar com o servidor. Tente novamente.');
-        }
-    }
-
-    function logout() {
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('currentUser');
-        currentToken = null;
-        currentUser = null;
-        window.location.reload();
-    }
-    
-    // --- LÓGICA DE AGENDAMENTO E DISPONIBILIDADE ---
-
-    const barbeiros = ['Marcos', 'João', 'Felipe'];
-    const servicos = {
-        'Corte Masculino': 35.00,
-        'Barba': 30.00,
-        'Sobrancelha': 15.00,
-        'Corte + Barba': 60.00
-    };
-
-    function initBarbers() {
-        const select = $('#barber-select');
-        barbeiros.forEach(barber => {
-            const option = document.createElement('option');
-            option.value = barber;
-            option.innerText = barber;
-            select.appendChild(option);
         });
-    }
 
-    function initServices() {
-        const container = $('#services-container');
-        Object.keys(servicos).forEach(service => {
-            const price = servicos[service];
-            const html = `
-                <label class="flex items-center space-x-2 p-2 bg-card rounded shadow-md cursor-pointer hover:bg-input transition-colors">
-                    <input type="checkbox" name="service" value="${service}" data-price="${price}" class="w-4 h-4 text-gold bg-dark border-input rounded focus:ring-gold">
-                    <span class="text-sm md:text-base">${service}</span>
-                    <span class="text-xs md:text-sm text-gold ml-auto">R$ ${price.toFixed(2).replace('.', ',')}</span>
+        // AUTH FUNCTIONS
+        function toggleAuthMode() {
+            document.getElementById('login-form').classList.toggle('hidden');
+            document.getElementById('register-form').classList.toggle('hidden');
+        }
+
+        function handleLogin() {
+            const email = document.getElementById('login-email').value;
+            const pass = document.getElementById('login-pass').value;
+            auth.signInWithEmailAndPassword(email, pass).catch(e => alert("Erro: " + e.message));
+        }
+
+        function handleRegister() {
+            const email = document.getElementById('reg-email').value;
+            const pass = document.getElementById('reg-pass').value;
+            const name = document.getElementById('reg-name').value;
+            
+            auth.createUserWithEmailAndPassword(email, pass).then(cred => {
+                return cred.user.updateProfile({ displayName: name });
+            }).catch(e => alert("Erro: " + e.message));
+        }
+
+        function logout() {
+            auth.signOut();
+        }
+
+        // APP LOGIC
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`tab-${tab}`).classList.remove('hidden');
+            
+            document.querySelectorAll('.nav-item').forEach(el => el.className = 'nav-item text-gray-400 cursor-pointer');
+            document.getElementById(`nav-${tab}`).className = 'nav-item text-gold font-bold cursor-pointer';
+        }
+
+        function renderBarbers() {
+            document.getElementById('barber-list').innerHTML = barbers.map(b => `
+                <label class="cursor-pointer">
+                    <input type="radio" name="barber" value="${b.name}" class="peer sr-only" onchange="selectedBarber='${b.name}'; loadAvailableTimes();">
+                    <div class="bg-card p-4 rounded text-center border-2 border-transparent peer-checked:border-gold peer-checked:bg-gray-800">
+                        <img src="${b.img}" class="w-16 h-16 rounded-full mx-auto mb-2">
+                        <div class="text-white font-bold text-sm">${b.name}</div>
+                    </div>
                 </label>
-            `;
-            container.innerHTML += html;
-        });
+            `).join('');
+        }
 
-        // Adiciona listener para calcular total
-        $$('input[name="service"]').forEach(checkbox => {
-            checkbox.addEventListener('change', updateAppointmentTotal);
-        });
-        updateAppointmentTotal();
-    }
+        function renderServices() {
+            document.getElementById('services-list').innerHTML = services.map(s => `
+                <label class="cursor-pointer">
+                    <input type="checkbox" value="${s.id}" class="peer sr-only service-checkbox" onchange="toggleService('${s.id}', '${s.name}', ${s.price})">
+                    <div class="bg-card p-4 rounded border border-gray-700 flex justify-between items-center">
+                        <div class="text-white font-bold text-sm">${s.name}</div>
+                        <div class="text-gold text-xs">R$ ${s.price}</div>
+                    </div>
+                </label>
+            `).join('');
+        }
 
-    function updateAppointmentTotal() {
-        let total = 0;
-        $$('input[name="service"]:checked').forEach(checkbox => {
-            total += parseFloat(checkbox.getAttribute('data-price'));
-        });
-        $('#total-value').innerText = `R$ ${total.toFixed(2).replace('.', ',')}`;
-    }
+        function toggleService(id, name, price) {
+            const idx = selectedServices.findIndex(x => x.id === id);
+            if(idx > -1) selectedServices.splice(idx, 1);
+            else selectedServices.push({id, name, price});
+        }
 
-    async function loadAvailableTimes() {
-        const date = $('#date-select').value;
-        const barber = $('#barber-select').value;
-        const container = $('#time-slots');
-        container.innerHTML = '';
-        
-        if (!date || !barber) return;
+        async function loadAvailableTimes() {
+            const date = document.getElementById('date-select').value;
+            const container = document.getElementById('time-slots');
+            container.innerHTML = '';
+            selectedTime = null;
 
-        try {
-            const response = await fetch(`${API_URL}/availability?date=${date}&barber=${barber}`);
-            if (!response.ok) throw new Error('Falha ao carregar disponibilidade.');
+            if(!selectedBarber || !date) return;
+
+            // 1. Verificar configuração do barbeiro (Escala)
+            const configDoc = await db.collection('schedules').doc(`${date}_${selectedBarber}`).get();
+            const defaultSlots = ['09:00', '10:00', '11:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00'];
+            let activeSlots = configDoc.exists ? configDoc.data().slots : defaultSlots;
+
+            // 2. Verificar agendamentos existentes no banco
+            const snapshot = await db.collection('appointments')
+                .where('barber', '==', selectedBarber)
+                .where('date', '==', date)
+                .where('status', '!=', 'Cancelado')
+                .get();
             
-            const bookedTimes = (await response.json()).map(item => item.time);
-            
-            // Horários da Barbearia (Exemplo: 9:00h às 18:00h, a cada 30 minutos)
-            const ALL_TIMES = [];
-            for(let h = 9; h < 18; h++) {
-                ALL_TIMES.push(`${String(h).padStart(2, '0')}:00`);
-                if (h < 17) ALL_TIMES.push(`${String(h).padStart(2, '0')}:30`); 
-            }
+            const busyTimes = snapshot.docs.map(doc => doc.data().time);
 
-            ALL_TIMES.forEach(time => {
-                const isBooked = bookedTimes.includes(time);
-                const button = document.createElement('button');
-                button.type = 'button';
-                button.innerText = time;
-                button.classList.add('time-slot', 'p-2', 'rounded', 'shadow-md', 'transition-colors', 'text-sm', 'w-full');
+            container.innerHTML = defaultSlots.map(time => {
+                const isBusy = busyTimes.includes(time);
+                const isBlocked = !activeSlots.includes(time);
                 
-                if (isBooked) {
-                    button.classList.add('bg-danger', 'text-white', 'cursor-not-allowed', 'opacity-50');
-                    button.disabled = true;
-                } else {
-                    button.classList.add('bg-card', 'hover:bg-gold', 'hover:text-dark');
-                    button.onclick = () => selectTime(button, time);
+                // Verifica passado
+                const now = new Date();
+                const [h, m] = time.split(':');
+                const slotDate = new Date(`${date}T${time}`);
+                const isPast = slotDate < now;
+
+                if(isBusy || isBlocked || isPast) {
+                    return `<div class="py-2 text-center rounded bg-gray-900 text-gray-600 text-sm line-through cursor-not-allowed">${time}</div>`;
                 }
-                container.appendChild(button);
-            });
-
-            // Reativa a função de seleção de horário
-            selectTime(null, null);
-
-        } catch (error) {
-            console.error('Erro ao buscar horários:', error);
-            alert('Não foi possível carregar a disponibilidade. Tente novamente.');
-        }
-    }
-
-    function selectTime(selectedButton, time) {
-        $$('.time-slot').forEach(btn => btn.classList.remove('border-2', 'border-gold'));
-        if (selectedButton) {
-            selectedButton.classList.add('border-2', 'border-gold');
-            $('#time-input').value = time;
-        } else {
-            $('#time-input').value = ''; // Limpa a seleção se a função for chamada sem botão (ex: ao recarregar a lista)
-        }
-    }
-    
-    async function handleAppointment(e) {
-        e.preventDefault();
-
-        const barberName = $('#barber-select').value;
-        const servicesChecked = $$('input[name="service"]:checked');
-        const services = Array.from(servicesChecked).map(c => c.value).join(', ');
-        const date = $('#date-select').value;
-        const time = $('#time-input').value;
-        const totalText = $('#total-value').innerText.replace('R$ ', '').replace(',', '.');
-        const total = parseFloat(totalText);
-
-        if (!barberName || !services || !date || !time || total === 0) {
-            return alert('Por favor, preencha todos os campos e selecione pelo menos um serviço.');
-        }
-
-        const appointmentData = {
-            barber_name: barberName,
-            services: services,
-            date: date,
-            time: time,
-            total: total
-        };
-
-        try {
-            const response = await fetch(`${API_URL}/appointments`, {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${currentToken}`
-                },
-                body: JSON.stringify(appointmentData)
-            });
-
-            const data = await response.json();
-
-            if (response.ok) {
-                alert('Agendamento confirmado com sucesso!');
-                e.target.reset(); // Limpa o formulário
-                loadAvailableTimes(); // Recarrega horários
-                renderHistory(); // Atualiza histórico
-            } else {
-                alert(`Erro ao agendar: ${data.message || 'Horário já reservado por outro cliente.'}`);
-            }
-        } catch (error) {
-            console.error('Erro de rede:', error);
-            alert('Erro ao conectar com o servidor. Tente novamente.');
-        }
-    }
-
-
-    // --- HISTÓRICO E FIDELIDADE (MIGRADO PARA A API) ---
-
-    async function renderHistory() {
-        const historyList = $('#history-list');
-        const loyaltyScore = $('#loyalty-score');
-        historyList.innerHTML = '<tr><td colspan="5" class="text-center p-4 text-gray-400">Carregando histórico...</td></tr>';
-
-        try {
-            const response = await fetch(`${API_URL}/history`, {
-                headers: { 'Authorization': `Bearer ${currentToken}` }
-            });
-            
-            if (!response.ok) throw new Error('Falha ao carregar histórico');
-            
-            const history = await response.json();
-            
-            if (history.length === 0) {
-                historyList.innerHTML = '<tr><td colspan="5" class="text-center p-4 text-gray-400">Nenhum agendamento encontrado.</td></tr>';
-                loyaltyScore.innerText = '0';
-                return;
-            }
-
-            // Cálculo do score de fidelidade
-            const completedAppointments = history.filter(apt => apt.status === 'Concluído').length;
-            loyaltyScore.innerText = completedAppointments;
-
-            // Renderiza a tabela
-            historyList.innerHTML = history.map(apt => {
-                let statusBadge;
-                let actionButton = '';
-                const dateDisplay = new Date(apt.date + 'T' + apt.time).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }) + ' às ' + apt.time;
-                
-                switch(apt.status) {
-                    case 'Confirmado':
-                        statusBadge = '<span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-600 text-white">Confirmado</span>';
-                        actionButton = `
-                            <button onclick="cancelAppointment(${apt.id})" title="Cancelar Agendamento" class="px-3 py-1 text-xs bg-red-600 hover:bg-red-500 rounded text-white transition-colors">
-                                Cancelar
-                            </button>`;
-                        break;
-                    case 'Concluído':
-                        statusBadge = '<span class="px-2 py-1 text-xs font-semibold rounded-full bg-success text-white">Concluído</span>';
-                        break;
-                    case 'Cancelado':
-                        statusBadge = '<span class="px-2 py-1 text-xs font-semibold rounded-full bg-danger text-white">Cancelado</span>';
-                        break;
-                    default:
-                        statusBadge = apt.status;
-                }
-
                 return `
-                    <tr class="border-t border-input hover:bg-card">
-                        <td class="p-3 text-sm">${apt.barber_name}</td>
-                        <td class="p-3 text-sm">${dateDisplay}</td>
-                        <td class="p-3 text-sm">${apt.services}</td>
-                        <td class="p-3 text-sm">${statusBadge}</td>
-                        <td class="p-3 text-sm text-right">${actionButton}</td>
-                    </tr>
+                    <label class="cursor-pointer">
+                        <input type="radio" name="time" value="${time}" class="peer sr-only time-radio" onchange="selectedTime='${time}'">
+                        <div class="py-2 text-center rounded border border-gray-700 text-gray-300 text-sm hover:border-gold transition-colors">${time}</div>
+                    </label>
                 `;
             }).join('');
-
-
-        } catch (error) {
-            console.error('Erro ao carregar histórico:', error);
-            historyList.innerHTML = '<tr><td colspan="5" class="text-center p-4 text-danger">Erro ao carregar histórico.</td></tr>';
         }
-    }
 
-    async function cancelAppointment(aptId) {
-        if (!confirm('Tem certeza que deseja cancelar este agendamento?')) return;
+        async function confirmarAgendamento() {
+            if(!selectedBarber || !selectedTime || selectedServices.length === 0) return alert("Preencha tudo!");
 
-        try {
-            const response = await fetch(`${API_URL}/appointments/status/${aptId}`, {
-                method: 'PUT',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${currentToken}`
-                },
-                body: JSON.stringify({ status: 'Cancelado' })
-            });
+            const total = selectedServices.reduce((a, b) => a + b.price, 0);
+            
+            try {
+                // Verificação final de concorrência
+                const check = await db.collection('appointments')
+                    .where('barber', '==', selectedBarber)
+                    .where('date', '==', document.getElementById('date-select').value)
+                    .where('time', '==', selectedTime)
+                    .where('status', '!=', 'Cancelado')
+                    .get();
 
-            const data = await response.json();
+                if(!check.empty) return alert("Ops! Alguém acabou de reservar esse horário.");
 
-            if (response.ok) {
-                alert('Agendamento cancelado com sucesso.');
-                renderHistory(); 
-            } else {
-                alert(`Falha ao cancelar: ${data.message || 'Erro desconhecido.'}`);
+                await db.collection('appointments').add({
+                    userId: currentUser.uid,
+                    userName: currentUser.displayName || currentUser.email,
+                    barber: selectedBarber,
+                    services: selectedServices.map(s => s.name).join(', '),
+                    date: document.getElementById('date-select').value,
+                    time: selectedTime,
+                    total: total,
+                    status: 'Confirmado',
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                alert("Agendamento Confirmado!");
+                switchTab('historico');
+                // Reset form
+                selectedServices = [];
+                selectedBarber = null;
+                selectedTime = null;
+                document.getElementById('date-select').value = '';
+                document.getElementById('time-slots').innerHTML = '';
+            } catch(e) {
+                console.error(e);
+                alert("Erro ao agendar.");
             }
-        } catch (error) {
-            console.error('Erro de rede:', error);
-            alert('Erro ao conectar com o servidor. Tente novamente.');
         }
-    }
 
+        function loadHistory() {
+            db.collection('appointments')
+                .where('userId', '==', currentUser.uid)
+                .orderBy('date', 'desc')
+                .onSnapshot(snapshot => {
+                    const list = document.getElementById('history-list');
+                    if(snapshot.empty) {
+                        list.innerHTML = '<p class="text-gray-500 text-center">Nenhum agendamento.</p>';
+                        return;
+                    }
 
-    // --- INICIALIZAÇÃO ---
+                    list.innerHTML = snapshot.docs.map(doc => {
+                        const d = doc.data();
+                        const color = d.status === 'Cancelado' ? 'text-red-500' : (d.status === 'Concluído' ? 'text-green-500' : 'text-blue-500');
+                        
+                        // Formata Data
+                        const dateParts = d.date.split('-'); // YYYY-MM-DD
+                        const dateBr = `${dateParts[2]}/${dateParts[1]}`;
 
-    document.addEventListener('DOMContentLoaded', () => {
-        // Inicializa a data para hoje
-        const today = new Date().toISOString().split('T')[0];
-        $('#date-select').setAttribute('min', today);
-        $('#date-select').value = today;
+                        return `
+                        <div class="bg-card border-l-4 ${d.status === 'Cancelado' ? 'border-red-500' : 'border-gold'} p-4 rounded shadow flex justify-between items-center">
+                            <div>
+                                <h4 class="font-bold text-white">${d.barber}</h4>
+                                <p class="text-xs text-gray-400">${d.services}</p>
+                                <div class="text-gold font-mono text-sm mt-1">${dateBr} às ${d.time}</div>
+                            </div>
+                            <div class="text-right">
+                                <div class="font-bold text-white">R$ ${d.total}</div>
+                                <div class="text-xs font-bold uppercase ${color}">${d.status}</div>
+                                ${d.status === 'Confirmado' ? `<button onclick="cancelAppt('${doc.id}')" class="text-xs text-red-400 mt-2 underline">Cancelar</button>` : ''}
+                            </div>
+                        </div>`;
+                    }).join('');
+                });
+        }
 
-        initBarbers();
-        initServices();
-        checkAuth(); // Verifica o login ao carregar a página
-        loadAvailableTimes(); // Carrega os horários iniciais
-        
-        // Listeners
-        $('#login-form').addEventListener('submit', handleLogin);
-        $('#register-form').addEventListener('submit', handleRegister);
-        $('#appointment-form').addEventListener('submit', handleAppointment);
-        $('#barber-select').addEventListener('change', loadAvailableTimes);
-        $('#date-select').addEventListener('change', loadAvailableTimes);
-        $('#logout-btn').addEventListener('click', logout);
-    });
-</script>
+        function cancelAppt(id) {
+            if(confirm("Deseja cancelar?")) {
+                db.collection('appointments').doc(id).update({ status: 'Cancelado' });
+            }
+        }
+    </script>
 </body>
 </html>
