@@ -425,11 +425,57 @@
         });
     }
 
-    function saveSchedule() {
-        const barber = document.getElementById('schedule-barber').value;
-        const date = document.getElementById('schedule-date').value;
-        const active = [];
-        document.querySelectorAll('#schedule-slots > div').forEach(el => { if(el.getAttribute('data-active') === 'true') active.push(el.getAttribute('data-time')); });
+    async function saveSchedule() {
+  try {
+    const barber = document.getElementById('schedule-barber').value;
+    const date = document.getElementById('schedule-date').value;
+    const active = [];
+
+    document.querySelectorAll('#schedule-slots > div').forEach(el => {
+      if (el.getAttribute('data-active') === 'true') {
+        active.push(el.getAttribute('data-time'));
+      }
+    });
+
+    const barberName = barber.trim();
+    const docId = `${date}_${barberName}`;
+
+    await db.collection('schedules').doc(docId).set({
+      slots: active,
+      date: date,
+      barber: barberName,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    const indexRef = db.collection('scheduleIndex').doc(barberName);
+
+    if (active.length > 0) {
+      await indexRef.set({
+        dates: firebase.firestore.FieldValue.arrayUnion(date)
+      }, { merge: true });
+    } else {
+      const idxDoc = await indexRef.get();
+      if (idxDoc.exists) {
+        await indexRef.update({
+          dates: firebase.firestore.FieldValue.arrayRemove(date)
+        });
+
+        const after = await indexRef.get();
+        const datesArr = after.exists && after.data().dates ? after.data().dates : [];
+
+        if (!after.exists || (Array.isArray(datesArr) && datesArr.length === 0)) {
+          await indexRef.delete().catch(() => {});
+        }
+      }
+    }
+
+    alert('Escala salva com sucesso!');
+  } catch (e) {
+    console.error('Erro ao salvar escala:', e);
+    alert('Erro ao salvar escala: ' + (e.message || e));
+  }
+}
+);
 
         db.collection('schedules').doc(`${date}_${barber}`).set({ slots: active })
             .then(() => alert('Escala salva com sucesso!'))
