@@ -1,236 +1,440 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Painel Admin - Barbearia</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Painel Admin — Marcos (interface original + Firebase)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
 
     <script>
-        tailwind.config = { theme: { extend: { colors: { gold: '#d4af37', dark: '#121212', darker: '#0a0a0a', card: '#1e1e1e', input: '#2a2a2a' } } } }
-    </script>
-    <style>body { background-color: #0a0a0a; color: #e5e5e5; }</style>
-</head>
-<body class="h-screen flex font-sans bg-darker">
-
-    <script>
-        // --- SUBSTITUA PELA MESMA CONFIGURAÇÃO DO INDEX.HTML ---
-        const firebaseConfig = {
-            apiKey: "SUA_API_KEY_AQUI",
-            authDomain: "SEU_PROJETO.firebaseapp.com",
-            projectId: "SEU_PROJETO_ID",
-            storageBucket: "SEU_PROJETO.appspot.com",
-            messagingSenderId: "NUMERO",
-            appId: "ID_DO_APP"
-        };
-        firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-        const db = firebase.firestore();
-    </script>
-
-    <aside class="w-64 bg-card border-r border-gray-800 flex flex-col hidden md:flex">
-        <div class="p-6 text-center border-b border-gray-800">
-            <h1 class="text-xl text-gold font-bold">PAINEL ADMIN</h1>
-        </div>
-        <nav class="flex-1 mt-6 px-4 space-y-2">
-            <button onclick="switchTab('dashboard')" class="w-full text-left p-3 rounded bg-gold text-darker font-bold">Dashboard</button>
-            <button onclick="switchTab('escala')" class="w-full text-left p-3 rounded text-gray-400 hover:bg-gray-800">Escala</button>
-            <button onclick="auth.signOut()" class="w-full text-left p-3 rounded text-red-400 hover:bg-gray-800 mt-10">Sair</button>
-        </nav>
-    </aside>
-
-    <main class="flex-1 flex flex-col h-full overflow-hidden">
-        <header class="h-16 border-b border-gray-800 bg-dark flex items-center justify-between px-6">
-            <h2 class="text-white font-bold">Barbearia Admin</h2>
-            <div id="status-conn" class="text-xs text-green-500">● Conectado</div>
-        </header>
-
-        <div class="flex-1 overflow-y-auto p-6">
-            
-            <section id="tab-dashboard">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                    <div class="bg-card p-6 rounded border border-gray-800">
-                        <p class="text-gray-400 text-xs uppercase">Hoje</p>
-                        <h3 class="text-3xl text-white font-bold" id="count-today">0</h3>
-                    </div>
-                    <div class="bg-card p-6 rounded border border-gray-800">
-                        <p class="text-gray-400 text-xs uppercase">Faturamento (Hoje)</p>
-                        <h3 class="text-3xl text-green-500 font-bold" id="rev-today">R$ 0,00</h3>
-                    </div>
-                </div>
-
-                <div class="bg-card border border-gray-800 rounded overflow-hidden">
-                    <div class="p-4 border-b border-gray-800 flex justify-between">
-                        <h3 class="text-white font-bold">Agendamentos Recentes</h3>
-                        <button onclick="loadDashboard()" class="text-gold text-xs">Atualizar</button>
-                    </div>
-                    <table class="w-full text-left text-sm text-gray-400">
-                        <thead class="bg-gray-900 text-xs uppercase">
-                            <tr>
-                                <th class="p-4">Data/Hora</th>
-                                <th class="p-4">Cliente</th>
-                                <th class="p-4">Barbeiro</th>
-                                <th class="p-4">Status</th>
-                                <th class="p-4">Ação</th>
-                            </tr>
-                        </thead>
-                        <tbody id="table-body" class="divide-y divide-gray-800"></tbody>
-                    </table>
-                </div>
-            </section>
-
-            <section id="tab-escala" class="hidden">
-                <h2 class="text-2xl text-white mb-6">Configurar Disponibilidade</h2>
-                <div class="bg-card p-6 rounded border border-gray-800 max-w-xl">
-                    <div class="mb-4">
-                        <label class="block text-gold text-xs mb-1">Barbeiro</label>
-                        <select id="schedule-barber" class="w-full bg-input text-white p-2 rounded" onchange="loadSchedule()">
-                            <option>Renan Silva</option>
-                            <option>Marcos Dias</option>
-                            <option>André Luiz</option>
-                            <option>Júnior</option>
-                        </select>
-                    </div>
-                    <div class="mb-4">
-                        <label class="block text-gold text-xs mb-1">Data</label>
-                        <input type="date" id="schedule-date" class="w-full bg-input text-white p-2 rounded" onchange="loadSchedule()">
-                    </div>
-                    <div class="grid grid-cols-5 gap-2" id="slots-container"></div>
-                    <button onclick="saveSchedule()" class="mt-6 w-full bg-gold text-darker font-bold p-3 rounded">SALVAR</button>
-                </div>
-            </section>
-
-        </div>
-    </main>
-
-    <script>
-        auth.onAuthStateChanged(user => {
-            if (!user) window.location.href = 'index.html';
-            else {
-                // Segurança extra: verifica email admin
-                if(user.email !== 'barbeiro2003@gmail.com') { // Email em minúsculo
-                    alert("Acesso não autorizado.");
-                    auth.signOut();
-                } else {
-                    initDashboard();
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        gold: '#d4af37',
+                        dark: '#121212',
+                        darker: '#0a0a0a',
+                        card: '#1e1e1e',
+                        input: '#2a2a2a',
+                        success: '#10b981',
+                        danger: '#ef4444'
+                    },
+                    fontFamily: {
+                        sans: ['Roboto', 'sans-serif'],
+                        display: ['Oswald', 'sans-serif']
+                    }
                 }
             }
-        });
-
-        function switchTab(tab) {
-            document.getElementById('tab-dashboard').classList.add('hidden');
-            document.getElementById('tab-escala').classList.add('hidden');
-            document.getElementById(`tab-${tab}`).classList.remove('hidden');
-            if(tab === 'escala') loadSchedule();
-        }
-
-        // --- DASHBOARD EM TEMPO REAL ---
-        function initDashboard() {
-            // Listener para todos os agendamentos
-            db.collection('appointments')
-                .orderBy('date', 'desc')
-                .orderBy('time', 'asc')
-                .limit(50)
-                .onSnapshot(snapshot => {
-                    const tbody = document.getElementById('table-body');
-                    tbody.innerHTML = '';
-                    
-                    let todayCount = 0;
-                    let todayRev = 0;
-                    const todayStr = new Date().toISOString().split('T')[0];
-
-                    snapshot.forEach(doc => {
-                        const d = doc.data();
-                        
-                        // Stats de hoje
-                        if(d.date === todayStr && d.status !== 'Cancelado') {
-                            todayCount++;
-                            if(d.status === 'Concluído') todayRev += d.total;
-                        }
-
-                        // Formata data
-                        const dateParts = d.date.split('-');
-                        const dateBr = `${dateParts[2]}/${dateParts[1]}`;
-                        
-                        let color = 'text-blue-500';
-                        if(d.status === 'Concluído') color = 'text-green-500';
-                        if(d.status === 'Cancelado') color = 'text-red-500';
-
-                        const tr = document.createElement('tr');
-                        tr.className = 'hover:bg-gray-900';
-                        tr.innerHTML = `
-                            <td class="p-4 text-white">${dateBr} <span class="text-gold text-xs ml-1">${d.time}</span></td>
-                            <td class="p-4">${d.userName}</td>
-                            <td class="p-4">${d.barber}</td>
-                            <td class="p-4 font-bold text-xs uppercase ${color}">${d.status}</td>
-                            <td class="p-4 flex gap-2">
-                                <button onclick="updateStatus('${doc.id}', 'Concluído')" class="text-green-500 hover:text-white"><i class="fa-solid fa-check"></i></button>
-                                <button onclick="updateStatus('${doc.id}', 'Cancelado')" class="text-red-500 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
-                            </td>
-                        `;
-                        tbody.appendChild(tr);
-                    });
-
-                    document.getElementById('count-today').innerText = todayCount;
-                    document.getElementById('rev-today').innerText = `R$ ${todayRev.toFixed(2)}`;
-                });
-        }
-
-        function updateStatus(id, status) {
-            if(confirm(`Mudar para ${status}?`)) {
-                db.collection('appointments').doc(id).update({ status: status });
-            }
-        }
-
-        // --- ESCALA ---
-        const defaultSlots = ['09:00', '10:00', '11:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00'];
-
-        function loadSchedule() {
-            const barber = document.getElementById('schedule-barber').value;
-            const date = document.getElementById('schedule-date').value || new Date().toISOString().split('T')[0];
-            document.getElementById('schedule-date').value = date;
-
-            db.collection('schedules').doc(`${date}_${barber}`).get().then(doc => {
-                const active = doc.exists ? doc.data().slots : defaultSlots;
-                const container = document.getElementById('slots-container');
-                container.innerHTML = defaultSlots.map(time => {
-                    const isActive = active.includes(time);
-                    return `
-                        <div onclick="toggleSlot(this)" data-time="${time}" data-active="${isActive}" 
-                            class="cursor-pointer border rounded py-2 text-center text-sm select-none 
-                            ${isActive ? 'bg-green-900/30 border-green-500 text-white' : 'bg-red-900/20 border-red-900 text-gray-600'}">
-                            ${time}
-                        </div>
-                    `;
-                }).join('');
-            });
-        }
-
-        function toggleSlot(el) {
-            const state = el.getAttribute('data-active') === 'true';
-            el.setAttribute('data-active', !state);
-            el.className = !state 
-                ? "cursor-pointer border rounded py-2 text-center text-sm select-none bg-green-900/30 border-green-500 text-white"
-                : "cursor-pointer border rounded py-2 text-center text-sm select-none bg-red-900/20 border-red-900 text-gray-600";
-        }
-
-        function saveSchedule() {
-            const barber = document.getElementById('schedule-barber').value;
-            const date = document.getElementById('schedule-date').value;
-            const active = [];
-            document.querySelectorAll('#slots-container > div').forEach(el => {
-                if(el.getAttribute('data-active') === 'true') active.push(el.getAttribute('data-time'));
-            });
-
-            db.collection('schedules').doc(`${date}_${barber}`).set({ slots: active })
-                .then(() => alert("Escala salva com sucesso!"))
-                .catch(e => alert("Erro ao salvar: " + e.message));
         }
     </script>
+
+    <style>
+        body { background-color: #0a0a0a; color: #e5e5e5; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0a0a0a; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #d4af37; }
+        .sidebar-transition { transition: transform 0.3s ease-in-out; }
+    </style>
+</head>
+<body class="h-screen flex overflow-hidden font-sans bg-darker">
+
+<!-- Firebase compat libs -->
+<script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
+
+<script>
+    // === SUBSTITUA pela config do seu projeto (use a mesma do index) ===
+    const firebaseConfig = {
+        apiKey: "AIzaSyCrHzXxwwTyTGVbxRin9GoD6Rqfz6NeWTU",
+        authDomain: "barbeariamarcos-4acc2.firebaseapp.com",
+        projectId: "barbeariamarcos-4acc2",
+        storageBucket: "barbeariamarcos-4acc2.firebasestorage.app",
+        messagingSenderId: "283555161596",
+        appId: "1:283555161596:web:f1de921877c0eea4417e79"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+</script>
+
+<aside id="sidebar" class="sidebar-transition fixed inset-y-0 left-0 w-72 bg-card border-r border-gray-800 flex flex-col z-50 transform -translate-x-full md:relative md:translate-x-0 shadow-2xl md:shadow-none">
+    <button onclick="toggleSidebar()" class="absolute top-4 right-4 text-gray-400 md:hidden hover:text-white">
+        <i class="fa-solid fa-xmark text-2xl"></i>
+    </button>
+
+    <div class="p-6 text-center border-b border-gray-800 mt-8 md:mt-0">
+        <h1 class="font-display text-2xl text-gold font-bold tracking-wider">PAINEL<br><span class="text-white text-lg">ADMINISTRATIVO</span></h1>
+    </div>
+
+    <div class="p-4 flex items-center gap-3 bg-gray-900 mx-4 mt-6 rounded-lg border border-gray-800">
+        <div id="admin-avatar" class="w-10 h-10 rounded-full bg-gold text-darker flex items-center justify-center font-bold text-lg">B</div>
+        <div>
+            <p id="admin-name" class="text-white font-bold text-sm">Barbeiro Chefe</p>
+            <p id="admin-status" class="text-xs text-green-500 flex items-center gap-1"><i class="fa-solid fa-circle text-[8px]"></i> Online</p>
+        </div>
+    </div>
+
+    <nav class="flex-1 mt-8 px-4 space-y-2">
+        <button onclick="switchAdminTab('dashboard')" id="btn-dashboard" class="w-full text-left p-3 rounded-lg bg-gold text-darker font-bold flex items-center gap-3 transition-transform hover:scale-105">
+            <i class="fa-solid fa-table-columns"></i> Visão Geral
+        </button>
+        
+        <button onclick="switchAdminTab('escala')" id="btn-escala" class="w-full text-left p-3 rounded-lg text-gray-400 hover:text-gold hover:bg-gray-800 flex items-center gap-3 transition-colors">
+            <i class="fa-regular fa-calendar-check"></i> Gerenciar Escala
+        </button>
+
+        <button onclick="logout()" class="w-full text-left p-3 rounded-lg text-gray-400 hover:text-red-400 hover:bg-gray-800 flex items-center gap-3 mt-auto mb-6">
+            <i class="fa-solid fa-right-from-bracket"></i> Sair do Painel
+        </button>
+    </nav>
+
+    <div class="p-4 text-center text-xs text-gray-600 border-t border-gray-800">
+        v1.0.1 - Sistema Admin
+    </div>
+</aside>
+
+<main class="flex-1 flex flex-col h-full relative overflow-hidden w-full">
+    <div class="absolute top-0 right-0 w-full h-full opacity-5 pointer-events-none z-0">
+         <img src="https://images.unsplash.com/photo-1628099003488-98aa1c9405e3?q=80&w=1287&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" class="w-full h-full object-cover">
+    </div>
+
+    <header class="h-16 md:h-20 border-b border-gray-800 bg-dark/95 backdrop-blur flex items-center justify-between px-4 md:px-8 z-10 shrink-0">
+        <div class="flex items-center gap-4">
+            <button onclick="toggleSidebar()" class="text-gold text-2xl md:hidden hover:text-white transition-colors">
+                <i class="fa-solid fa-bars"></i>
+            </button>
+            <h2 class="text-xl md:text-2xl font-display text-white">Dashboard</h2>
+        </div>
+        
+        <div class="text-xs md:text-sm text-gray-400 text-right">
+            <span id="current-date" class="block">Carregando...</span>
+        </div>
+    </header>
+
+    <div class="flex-1 overflow-y-auto p-4 md:p-8 z-10 w-full relative">
+        <section id="admin-tab-dashboard" class="fade-in space-y-8">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+                <div class="bg-card border border-gray-800 p-6 rounded-xl shadow-lg relative overflow-hidden group">
+                    <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                        <i class="fa-solid fa-calendar-check text-5xl md:text-6xl text-gold"></i>
+                    </div>
+                    <p class="text-gray-400 text-xs md:text-sm uppercase tracking-wider mb-1">Agendamentos Hoje</p>
+                    <h3 class="text-3xl md:text-4xl font-display text-white font-bold" id="stat-today">0</h3>
+                </div>
+
+                <div class="bg-card border border-gray-800 p-6 rounded-xl shadow-lg relative overflow-hidden group">
+                    <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                        <i class="fa-solid fa-sack-dollar text-5xl md:text-6xl text-green-500"></i>
+                    </div>
+                    <p class="text-gray-400 text-xs md:text-sm uppercase tracking-wider mb-1">Faturamento (Confirmado)</p>
+                    <h3 class="text-3xl md:text-4xl font-display text-white font-bold text-green-400" id="stat-revenue">R$ 0,00</h3>
+                </div>
+
+                <div class="bg-card border border-gray-800 p-6 rounded-xl shadow-lg relative overflow-hidden group">
+                    <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                        <i class="fa-solid fa-users text-5xl md:text-6xl text-blue-500"></i>
+                    </div>
+                    <p class="text-gray-400 text-xs md:text-sm uppercase tracking-wider mb-1">Total de Clientes</p>
+                    <h3 class="text-3xl md:text-4xl font-display text-white font-bold" id="stat-clients">0</h3>
+                </div>
+            </div>
+
+            <div class="bg-card border border-gray-800 rounded-xl shadow-xl overflow-hidden flex flex-col h-auto max-h-[600px]">
+                <div class="p-4 md:p-6 border-b border-gray-800 flex flex-col sm:flex-row justify-between items-start sm:items-center shrink-0 bg-card z-10 gap-3 sm:gap-4">
+                    <h3 class="font-display text-lg md:text-xl text-white">Todos os Agendamentos</h3>
+                    <div class="flex items-center gap-3 flex-wrap">
+                        <label for="barber-filter" class="text-sm text-gray-400 hidden sm:block">Filtrar:</label>
+                        <select id="barber-filter" onchange="filterAppointments()" class="bg-gray-700 text-white p-2 rounded-lg border border-gray-600 text-sm focus:ring-gold focus:border-gold"></select>
+                        <button onclick="loadDashboard()" class="text-gold hover:text-white transition-colors text-sm md:text-base"><i class="fa-solid fa-rotate-right"></i> <span class="hidden md:inline">Atualizar</span></button>
+                    </div>
+                </div>
+                
+                <div class="overflow-x-auto w-full">
+                    <table class="w-full text-left border-collapse min-w-[800px] md:min-w-0">
+                        <thead class="bg-gray-900 sticky top-0">
+                            <tr class="text-gray-400 text-xs md:text-sm uppercase tracking-wider">
+                                <th class="p-3 md:p-4 font-medium">Data/Hora</th>
+                                <th class="p-3 md:p-4 font-medium">Cliente</th>
+                                <th class="p-3 md:p-4 font-medium">Profissional</th>
+                                <th class="p-3 md:p-4 font-medium">Serviços</th>
+                                <th class="p-3 md:p-4 font-medium">Valor</th>
+                                <th class="p-3 md:p-4 font-medium">Status</th>
+                                <th class="p-3 md:p-4 font-medium text-center">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="appointments-table-body" class="text-sm divide-y divide-gray-800"></tbody>
+                    </table>
+                </div>
+            </div>
+
+        </section>
+
+        <section id="admin-tab-escala" class="fade-in hidden max-w-4xl mx-auto">
+            <h2 class="font-display text-3xl text-white mb-2">Configurar Escala</h2>
+            <p class="text-gray-400 mb-8">Defina quais dias e horários estarão visíveis para os clientes.</p>
+
+            <div class="bg-card border border-gray-800 p-6 rounded-xl shadow-lg mb-8">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div>
+                        <label class="block text-xs text-gold uppercase mb-1">1. Selecione o Barbeiro</label>
+                        <select id="schedule-barber" class="w-full bg-input border border-gray-700 text-white p-3 rounded-lg focus:border-gold outline-none" onchange="loadSchedule()"></select>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gold uppercase mb-1">2. Selecione a Data</label>
+                        <input type="date" id="schedule-date" class="w-full bg-input border border-gray-700 text-white p-3 rounded-lg focus:border-gold outline-none" onchange="loadSchedule()">
+                    </div>
+                </div>
+
+                <div class="mb-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <label class="block text-xs text-gold uppercase">3. Horários Disponíveis</label>
+                        <div class="text-xs space-x-2">
+                            <button onclick="toggleAllSlots(true)" class="text-green-500 hover:underline">Marcar Todos</button>
+                            <button onclick="toggleAllSlots(false)" class="text-red-500 hover:underline">Desmarcar Todos</button>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-4 md:grid-cols-6 gap-3" id="schedule-slots"></div>
+                </div>
+
+                <button onclick="saveSchedule()" class="w-full bg-gold hover:bg-yellow-600 text-darker font-bold py-3 rounded-lg transition-transform hover:scale-105">SALVAR ESCALA</button>
+            </div>
+
+            <div class="bg-blue-900/20 border border-blue-800 p-4 rounded-lg flex gap-3">
+                <i class="fa-solid fa-circle-info text-blue-400 mt-1"></i>
+                <p class="text-sm text-gray-300">Se você desmarcar um horário aqui, ele sumirá instantaneamente do aplicativo do cliente. Use isso para folgas, pausas de almoço ou saídas antecipadas.</p>
+            </div>
+        </section>
+    </div>
+</main>
+
+<script>
+    // --- Funções de UI ---
+    function toggleSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('mobile-overlay');
+        if (sidebar.classList.contains('-translate-x-full')) {
+            sidebar.classList.remove('-translate-x-full');
+            if (overlay) overlay.classList.remove('hidden');
+        } else {
+            sidebar.classList.add('-translate-x-full');
+            if (overlay) overlay.classList.add('hidden');
+        }
+    }
+
+    function switchAdminTab(tab) {
+        document.getElementById('admin-tab-dashboard').classList.add('hidden');
+        document.getElementById('admin-tab-escala').classList.add('hidden');
+        document.getElementById('admin-tab-' + tab).classList.remove('hidden');
+
+        document.getElementById('btn-dashboard').classList.remove('bg-gold', 'text-darker');
+        document.getElementById('btn-dashboard').classList.add('text-gray-400');
+        document.getElementById('btn-escala').classList.remove('bg-gold', 'text-darker');
+        document.getElementById('btn-escala').classList.add('text-gray-400');
+
+        const activeBtn = document.getElementById('btn-' + tab);
+        if(activeBtn) { activeBtn.classList.remove('text-gray-400'); activeBtn.classList.add('bg-gold', 'text-darker'); }
+
+        if (tab === 'escala') initScheduleTab();
+    }
+
+    // --- Estado e dados ---
+    const barbers = [
+        { id: 1, name: 'Renan Silva' },
+        { id: 2, name: 'Marcos Dias' },
+        { id: 3, name: 'André Luiz' },
+        { id: 4, name: 'Júnior' }
+    ];
+
+    let scheduleChartInstance = null;
+    const defaultTimeSlots = ['09:00','10:00','11:00','13:00','14:00','15:00','16:00','17:00','18:00','19:00'];
+
+    // --- Autenticação e autorização ---
+    // Este painel exige que o usuário tenha a claim custom 'admin': true
+    auth.onAuthStateChanged(async (user) => {
+        if (!user) {
+            // não autenticado -> voltar para index
+            window.location.href = 'index.html';
+            return;
+        }
+
+        try {
+            const idTokenRes = await user.getIdTokenResult(true);
+            const claims = idTokenRes.claims || {};
+
+            // Segurança: preferimos claims.admin === true. Caso não esteja definido, fallback para e-mail (menos recomendado).
+            const isAdmin = !!claims.admin || (user.email && user.email.toLowerCase() === 'barbeiro2003@gmail.com');
+            if (!isAdmin) {
+                alert('Acesso não autorizado ao painel.');
+                auth.signOut();
+                return;
+            }
+
+            // Mostra nome / avatar
+            document.getElementById('admin-name').innerText = user.displayName || user.email;
+            document.getElementById('admin-avatar').innerText = (user.displayName || user.email).charAt(0).toUpperCase();
+            document.getElementById('current-date').innerText = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
+
+            // Popula selects e carrega dashboard
+            renderBarberFilter();
+            initScheduleTab();
+            switchAdminTab('dashboard');
+            attachRealtimeDashboard();
+        } catch (e) {
+            console.error(e);
+            alert('Erro de autenticação.');
+            auth.signOut();
+        }
+    });
+
+    function logout() { auth.signOut(); }
+
+    // --- Dashboard (real-time) ---
+    function attachRealtimeDashboard() {
+        // Query appointments in Firestore (admin) - Firestore rules must permitir leitura para admins
+        db.collection('appointments').orderBy('date','desc').orderBy('time','asc').limit(200)
+            .onSnapshot(snapshot => {
+                const tbody = document.getElementById('appointments-table-body');
+                tbody.innerHTML = '';
+                let todayCount = 0;
+                let todayRev = 0;
+                const todayStr = new Date().toISOString().split('T')[0];
+
+                snapshot.forEach(doc => {
+                    const d = doc.data();
+                    if (d.date === todayStr && d.status !== 'Cancelado') {
+                        todayCount++;
+                        if (d.status === 'Concluído') todayRev += Number(d.total || 0);
+                    }
+
+                    const dateParts = (d.date || '').split('-');
+                    const dateBr = dateParts.length === 3 ? `${dateParts[2]}/${dateParts[1]}` : d.date;
+
+                    let color = 'text-blue-500';
+                    if (d.status === 'Concluído') color = 'text-green-500';
+                    if (d.status === 'Cancelado') color = 'text-red-500';
+
+                    const tr = document.createElement('tr');
+                    tr.className = 'hover:bg-gray-900';
+                    tr.innerHTML = `
+                        <td class="p-4 text-white">${dateBr} <span class="text-gold text-xs ml-1">${d.time}</span></td>
+                        <td class="p-4">${d.userName || d.userEmail}</td>
+                        <td class="p-4">${d.barber}</td>
+                        <td class="p-4 font-bold text-xs uppercase ${color}">${d.status}</td>
+                        <td class="p-4 flex gap-2">
+                            <button onclick="updateStatus('${doc.id}','Concluído')" class="text-green-500 hover:text-white"><i class="fa-solid fa-check"></i></button>
+                            <button onclick="updateStatus('${doc.id}','Cancelado')" class="text-red-500 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+
+                document.getElementById('count-today').innerText = todayCount;
+                document.getElementById('rev-today').innerText = `R$ ${todayRev.toFixed(2)}`;
+
+                // Atualiza KPIs gerais (clientes e filtro)
+                db.collection('users').get().then(uSnap => { document.getElementById('stat-clients').innerText = uSnap.size; }).catch(()=>{});
+                renderBarberFilter();
+            }, err => console.error(err));
+    }
+
+    function updateStatus(id, status) {
+        if (!confirm(`Deseja alterar para ${status}?`)) return;
+        db.collection('appointments').doc(id).update({ status: status }).catch(e => alert('Erro: ' + e.message));
+    }
+
+    // --- Render & filtro de barbeiros (select) ---
+    function renderBarberFilter() {
+        const select = document.getElementById('barber-filter');
+        if(!select) return;
+        select.innerHTML = '';
+        const opt = document.createElement('option'); opt.value = 'Todos'; opt.textContent = 'Todos os Profissionais'; select.appendChild(opt);
+        barbers.forEach(b => { const o = document.createElement('option'); o.value = b.name; o.textContent = b.name; select.appendChild(o); });
+    }
+
+    function filterAppointments() {
+        const sel = document.getElementById('barber-filter');
+        const filter = sel.value;
+        // Simples: reaplica snapshot com filtro (recria listener)
+        // Para simplicidade neste arquivo, apenas recarregamos manualmente aplicando client-side
+        db.collection('appointments').orderBy('date','desc').orderBy('time','asc').limit(500).get().then(snap => {
+            let rows = [];
+            snap.forEach(d => rows.push({ id: d.id, ...d.data() }));
+            if (filter !== 'Todos') rows = rows.filter(r => r.barber === filter);
+            renderTableFromArray(rows);
+        });
+    }
+
+    function renderTableFromArray(rows) {
+        const tbody = document.getElementById('appointments-table-body');
+        tbody.innerHTML = '';
+        rows.forEach(r => {
+            const dateParts = (r.date || '').split('-');
+            const dateBr = dateParts.length === 3 ? `${dateParts[2]}/${dateParts[1]}` : r.date;
+            let color = 'text-blue-500'; if(r.status === 'Concluído') color='text-green-500'; if(r.status === 'Cancelado') color='text-red-500';
+            const tr = document.createElement('tr'); tr.className='hover:bg-gray-900';
+            tr.innerHTML = `
+                <td class="p-4 text-white">${dateBr} <span class="text-gold text-xs ml-1">${r.time}</span></td>
+                <td class="p-4">${r.userName || r.userEmail}</td>
+                <td class="p-4">${r.barber}</td>
+                <td class="p-4 font-bold text-xs uppercase ${color}">${r.status}</td>
+                <td class="p-4 flex gap-2">
+                    <button onclick="updateStatus('${r.id}','Concluído')" class="text-green-500 hover:text-white"><i class="fa-solid fa-check"></i></button>
+                    <button onclick="updateStatus('${r.id}','Cancelado')" class="text-red-500 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    // --- Escala (schedules) ---
+    function initScheduleTab() {
+        const sel = document.getElementById('schedule-barber');
+        sel.innerHTML = barbers.map(b => `<option value="${b.name}">${b.name}</option>`).join('');
+        document.getElementById('schedule-date').value = new Date().toISOString().split('T')[0];
+        loadSchedule();
+    }
+
+    function loadSchedule() {
+        const barber = document.getElementById('schedule-barber').value;
+        const date = document.getElementById('schedule-date').value || new Date().toISOString().split('T')[0];
+        document.getElementById('schedule-date').value = date;
+
+        db.collection('schedules').doc(`${date}_${barber}`).get().then(doc => {
+            const active = doc.exists ? doc.data().slots : defaultTimeSlots;
+            const container = document.getElementById('schedule-slots');
+            container.innerHTML = defaultTimeSlots.map(time => {
+                const isActive = active.includes(time);
+                return `<div onclick="toggleSlot(this)" data-time="${time}" data-active="${isActive}" class="cursor-pointer border rounded py-2 text-center text-sm select-none ${isActive ? 'bg-green-900/30 border-green-500 text-white' : 'bg-red-900/20 border-red-900 text-gray-600'}">${time}</div>`;
+            }).join('');
+        }).catch(e => { console.error(e); });
+    }
+
+    function toggleSlot(el) {
+        const state = el.getAttribute('data-active') === 'true';
+        el.setAttribute('data-active', !state);
+        el.className = !state ? "cursor-pointer border rounded py-2 text-center text-sm select-none bg-green-900/30 border-green-500 text-white" : "cursor-pointer border rounded py-2 text-center text-sm select-none bg-red-900/20 border-red-900 text-gray-600";
+    }
+
+    function toggleAllSlots(enable) {
+        document.querySelectorAll('#schedule-slots > div').forEach(el => {
+            el.setAttribute('data-active', enable);
+            el.className = enable ? "cursor-pointer border rounded py-2 text-center text-sm select-none bg-green-900/30 border-green-500 text-white" : "cursor-pointer border rounded py-2 text-center text-sm select-none bg-red-900/20 border-red-900 text-gray-600";
+        });
+    }
+
+    function saveSchedule() {
+        const barber = document.getElementById('schedule-barber').value;
+        const date = document.getElementById('schedule-date').value;
+        const active = [];
+        document.querySelectorAll('#schedule-slots > div').forEach(el => { if(el.getAttribute('data-active') === 'true') active.push(el.getAttribute('data-time')); });
+
+        db.collection('schedules').doc(`${date}_${barber}`).set({ slots: active })
+            .then(() => alert('Escala salva com sucesso!'))
+            .catch(e => alert('Erro ao salvar: ' + e.message));
+    }
+</script>
 </body>
 </html>
