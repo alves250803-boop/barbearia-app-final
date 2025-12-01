@@ -3,11 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Barbearia Marcos - Agendamento</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;700&family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
+    <title>Projeto Marcos — (interface original + Firebase)</title>
     
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;700&family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
+
+    <!-- Firebase (compat) -->
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
@@ -16,24 +20,41 @@
         tailwind.config = {
             theme: {
                 extend: {
-                    colors: { gold: '#d4af37', dark: '#121212', darker: '#0a0a0a', card: '#1e1e1e', input: '#2a2a2a' },
-                    fontFamily: { sans: ['Roboto', 'sans-serif'], display: ['Oswald', 'sans-serif'] }
+                    colors: {
+                        gold: '#d4af37',
+                        dark: '#121212',
+                        darker: '#0a0a0a',
+                        card: '#1e1e1e',
+                        input: '#2a2a2a'
+                    },
+                    fontFamily: {
+                        sans: ['Roboto', 'sans-serif'],
+                        display: ['Oswald', 'sans-serif'],
+                    }
                 }
             }
         }
     </script>
+
     <style>
         body { background-color: #121212; color: #e5e5e5; }
         .fade-in { animation: fadeIn 0.4s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .service-checkbox:checked + div { border-color: #d4af37; background-color: rgba(212, 175, 55, 0.1); }
         .time-radio:checked + div { background-color: #d4af37; color: #000; border-color: #d4af37; font-weight: bold; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0a0a0a; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #d4af37; }
+        .hide-scroll::-webkit-scrollbar { display: none; }
     </style>
 </head>
 <body class="h-screen overflow-hidden font-sans">
 
+    <!-- NOTE: This file merges the UI of your original index(1).html with Firebase auth/firestore logic from index.html. -->
+
     <script>
-        // --- SUBSTITUA PELA SUA CONFIGURAÇÃO FIREBASE AQUI ---
+        // === FIREBASE CONFIG - substitua se necessário ===
         const firebaseConfig = {
             apiKey: "AIzaSyCrHzXxwwTyTGVbxRin9GoD6Rqfz6NeWTU",
             authDomain: "barbeariamarcos-4acc2.firebaseapp.com",
@@ -42,340 +63,731 @@
             messagingSenderId: "283555161596",
             appId: "1:283555161596:web:f1de921877c0eea4417e79"
         };
-        // -----------------------------------------------------
-
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
     </script>
 
-    <section id="auth-screen" class="w-full h-full flex items-center justify-center bg-[url('https://images.unsplash.com/photo-1638383257225-f810a62c634e?q=80&w=1287')] bg-cover bg-center relative">
-        <div class="absolute inset-0 bg-darker/90"></div>
-        <div class="relative z-10 w-full max-w-md p-6 fade-in">
+    <!-- === (UI kept from index(1).html) === -->
+    <section id="auth-screen" class="w-full h-full flex items-center justify-center bg-[url('https://images.unsplash.com/photo-1638383257225-f810a62c634e?q=80&w=1287&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D')] bg-cover bg-center relative">
+        <div class="absolute inset-0 bg-darker/90"></div> <div class="relative z-10 w-full max-w-md p-6 fade-in">
             <div class="text-center mb-8">
-                <h1 class="font-display text-5xl text-gold font-bold mb-2">MARCOS<br><span class="text-white text-3xl">BARBEARIA</span></h1>
-                <p class="text-gray-400">Entre para agendar.</p>
+                <h1 class="font-display text-5xl text-gold font-bold tracking-wider mb-2">MARCOS<br><span class="text-white text-3xl">BARBEARIA</span></h1> <br> 
+                <p class="text-gray-400">Entre para agendar seu serviço. </p>
             </div>
+
             <div class="bg-card border border-gray-800 p-8 rounded-2xl shadow-2xl">
+                
                 <form id="login-form" class="space-y-6" onsubmit="event.preventDefault(); handleLogin();">
                     <h2 class="text-2xl text-white font-display">Login</h2>
-                    <input type="email" id="login-email" class="w-full bg-input rounded p-3 text-white border border-gray-700" placeholder="Email" required>
-                    <input type="password" id="login-pass" class="w-full bg-input rounded p-3 text-white border border-gray-700" placeholder="Senha" required>
-                    <button type="submit" class="w-full bg-gold hover:bg-yellow-600 text-darker font-bold py-3 rounded">ENTRAR</button>
-                    <p class="text-center text-sm text-gray-400 mt-4 cursor-pointer hover:text-white" onclick="toggleAuthMode()">Não tem conta? Registre-se</p>
+                    
+                    <div>
+                        <label class="block text-xs text-gold uppercase mb-1">Email</label>
+                        <div class="flex items-center bg-input rounded-lg border border-gray-700 px-3 py-3">
+                            <i class="fa-solid fa-envelope text-gray-500 mr-3"></i>
+                            <input type="email" id="login-email" class="bg-transparent w-full text-white focus:outline-none" placeholder="seu@email.com" required>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs text-gold uppercase mb-1">Senha</label>
+                        <div class="flex items-center bg-input rounded-lg border border-gray-700 px-3 py-3">
+                            <i class="fa-solid fa-lock text-gray-500 mr-3"></i>
+                            <input type="password" id="login-pass" class="bg-transparent w-full text-white focus:outline-none" placeholder="******" required>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="w-full bg-gold hover:bg-yellow-600 text-darker font-bold py-3 rounded-lg transition-transform hover:scale-105">
+                        ENTRAR
+                    </button>
+                    
+                    <p class="text-center text-sm text-gray-400 mt-4">
+                        Não tem conta? <a href="#" onclick="toggleAuthMode()" class="text-gold hover:underline">Registre-se</a>
+                    </p>
                 </form>
+
                 <form id="register-form" class="space-y-6 hidden" onsubmit="event.preventDefault(); handleRegister();">
                     <h2 class="text-2xl text-white font-display">Criar Conta</h2>
-                    <input type="text" id="reg-name" class="w-full bg-input rounded p-3 text-white border border-gray-700" placeholder="Nome Completo" required>
-                    <input type="email" id="reg-email" class="w-full bg-input rounded p-3 text-white border border-gray-700" placeholder="Email" required>
-                    <input type="password" id="reg-pass" class="w-full bg-input rounded p-3 text-white border border-gray-700" placeholder="Senha (min 6 carac.)" required>
-                    <button type="submit" class="w-full bg-gold hover:bg-yellow-600 text-darker font-bold py-3 rounded">CADASTRAR</button>
-                    <p class="text-center text-sm text-gray-400 mt-4 cursor-pointer hover:text-white" onclick="toggleAuthMode()">Voltar para Login</p>
+                    
+                    <div>
+                        <label class="block text-xs text-gold uppercase mb-1">Nome Completo</label>
+                        <div class="flex items-center bg-input rounded-lg border border-gray-700 px-3 py-3">
+                            <i class="fa-solid fa-user text-gray-500 mr-3"></i>
+                            <input type="text" id="reg-name" class="bg-transparent w-full text-white focus:outline-none" placeholder="Seu Nome" required>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs text-gold uppercase mb-1">Email</label>
+                        <div class="flex items-center bg-input rounded-lg border border-gray-700 px-3 py-3">
+                            <i class="fa-solid fa-envelope text-gray-500 mr-3"></i>
+                            <input type="email" id="reg-email" class="bg-transparent w-full text-white focus:outline-none" placeholder="seu@email.com" required>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs text-gold uppercase mb-1">Senha</label>
+                        <div class="flex items-center bg-input rounded-lg border border-gray-700 px-3 py-3">
+                            <i class="fa-solid fa-lock text-gray-500 mr-3"></i>
+                            <input type="password" id="reg-pass" class="bg-transparent w-full text-white focus:outline-none" placeholder="******" required>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="w-full bg-gold hover:bg-yellow-600 text-darker font-bold py-3 rounded-lg transition-transform hover:scale-105">
+                        CADASTRAR
+                    </button>
+                    
+                    <p class="text-center text-sm text-gray-400 mt-4">
+                        Já tem conta? <a href="#" onclick="toggleAuthMode()" class="text-gold hover:underline">Faça Login</a>
+                    </p>
                 </form>
             </div>
         </div>
     </section>
 
     <div id="app-screen" class="hidden flex-col md:flex-row h-screen overflow-hidden">
-        <nav class="bg-darker border-r border-gray-800 w-full md:w-64 h-16 md:h-full fixed bottom-0 md:relative z-50 flex md:flex-col justify-between p-6 shadow-2xl">
-            <div class="hidden md:block w-full">
-                <h1 class="font-display text-2xl text-gold font-bold mb-6">MARCOS<br><span class="text-white text-lg">BARBEARIA</span></h1>
-                <div class="bg-gray-900 rounded p-3 flex items-center gap-3 border border-gray-800">
-                    <div class="w-8 h-8 rounded-full bg-gold text-darker flex items-center justify-center font-bold" id="user-avatar">U</div>
+        
+        <nav class="bg-darker border-r border-gray-800 w-full md:w-64 h-16 md:h-full fixed bottom-0 md:relative z-50 flex md:flex-col justify-between items-center md:items-start p-0 md:p-6 shadow-2xl md:shadow-none">
+            
+            <div class="hidden md:block mb-10 w-full">
+                <h1 class="font-display text-3xl text-gold font-bold tracking-wider mb-6">MARCOS<br><span class="text-white text-xl">BARBEARIA</span></h1>
+                
+                <div class="bg-gray-900 rounded-lg p-3 flex items-center gap-3 border border-gray-800">
+                    <div class="w-5 h-5 rounded-full bg-gold text-darker flex items-center justify-center font-bold" id="user-avatar">U</div>
                     <div class="overflow-hidden">
-                        <p class="text-white text-sm font-bold truncate" id="user-name-display">Carregando...</p>
-                        <button onclick="logout()" class="text-xs text-red-400 hover:text-red-300">Sair</button>
+                        <p class="text-white text-sm font-bold truncate" id="user-name-display">Usuário</p>
+                        <button onclick="logout()" class="text-xs text-red-400 hover:text-red-300 flex items-center gap-1">
+                            <i class="fa-solid fa-right-from-bracket"></i> Sair
+                        </button>
                     </div>
                 </div>
             </div>
+
+            <button onclick="logout()" class="md:hidden absolute top-[-50px] right-4 bg-red-900/80 text-white p-2 rounded-full w-8 h-8 flex items-center justify-center text-xs border border-red-500">
+                <i class="fa-solid fa-power-off"></i>
+            </button>
+
             <div class="flex md:flex-col justify-around w-full md:w-auto md:space-y-4 h-full md:h-auto items-center md:items-start">
-                <button onclick="switchTab('home')" id="nav-home" class="nav-item text-gold font-bold">Início</button>
-                <button onclick="switchTab('agendar')" id="nav-agendar" class="nav-item text-gray-400">Agendar</button>
-                <button onclick="switchTab('historico')" id="nav-historico" class="nav-item text-gray-400">Histórico</button>
+                <button onclick="switchTab('home')" id="nav-home" class="nav-item group flex flex-col md:flex-row items-center md:space-x-3 p-2 md:p-3 rounded-lg w-full text-gold bg-gray-800 md:bg-transparent transition-all hover:bg-gray-800">
+                    <i class="fa-solid fa-house text-xl mb-1 md:mb-0"></i>
+                    <span class="text-xs md:text-base font-medium">Inicio</span>
+                </button>
+                <button onclick="switchTab('agendar')" id="nav-agendar" class="nav-item group flex flex-col md:flex-row items-center md:space-x-3 p-2 md:p-3 rounded-lg w-full text-gray-400 hover:text-gold transition-all hover:bg-gray-800">
+                    <i class="fa-solid fa-scissors text-xl mb-1 md:mb-0"></i>
+                    <span class="text-xs md:text-base font-medium">Agendar</span>
+                </button>
+                <button onclick="switchTab('historico')" id="nav-historico" class="nav-item group flex flex-col md:flex-row items-center md:space-x-3 p-2 md:p-3 rounded-lg w-full text-gray-400 hover:text-gold transition-all hover:bg-gray-800">
+                    <i class="fa-solid fa-clock-rotate-left text-xl mb-1 md:mb-0"></i>
+                    <span class="text-xs md:text-base font-medium">Histórico</span>
+                </button>
+            </div>
+
+            <div class="hidden md:block text-gray-500 text-xs mt-auto">
+                &copy; 2025 PROJETO MARCOS
             </div>
         </nav>
 
         <main class="flex-1 h-full overflow-y-auto pb-20 md:pb-0 bg-dark relative">
-            <div class="md:hidden p-4 bg-darker border-b border-gray-800 flex justify-between items-center sticky top-0 z-40">
-                <h1 class="text-gold font-bold">MARCOS BARBEARIA</h1>
-                <button onclick="logout()" class="text-red-500 text-xs">Sair</button>
+            
+            <div class="md:hidden flex items-center justify-between p-4 bg-darker border-b border-gray-800 sticky top-0 z-40">
+                <h1 class="font-display text-xl text-gold font-bold">W. NUNES BARBEARIA</h1>
+                <span class="text-xs text-gray-400" id="mobile-user-display">Olá, Usuário</span>
             </div>
 
-            <section id="tab-home" class="tab-content fade-in p-6 md:p-12 min-h-full flex flex-col justify-center relative">
-                <div class="relative z-10 max-w-2xl">
-                    <h2 class="font-display text-5xl text-white font-bold mb-6">ESTILO E<br>TRADIÇÃO.</h2>
-                    <button onclick="switchTab('agendar')" class="bg-gold text-darker font-bold py-3 px-8 rounded hover:scale-105 transition">AGENDAR AGORA</button>
+            <section id="tab-home" class="tab-content fade-in p-6 md:p-12 min-h-full flex flex-col justify-center items-start relative overflow-hidden">
+                <div class="absolute top-0 right-0 w-full h-full opacity-10 pointer-events-none">
+                    <img src="https://images.unsplash.com/photo-1628099003488-98aa1c9405e3?q=80&w=1287&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" class="w-full h-full object-cover">
                 </div>
+                <div class="relative z-10 max-w-2xl">
+                    <span class="text-gold font-bold tracking-widest uppercase text-sm mb-2 block">Estilo & Qualidade</span>
+                    <h2 class="font-display text-5xl md:text-7xl text-white font-bold leading-tight mb-6">O CUIDADO QUE <br> VOCÊ MERECE.</h2>
+                    <p class="text-gray-400 text-lg mb-8 max-w-md">Profissionais experientes, ambiente climatizado e cortes de alta precisão. Agende seu horário agora mesmo.</p>
+                    <button onclick="switchTab('agendar')" class="bg-gold hover:bg-yellow-600 text-darker font-bold py-4 px-8 rounded-full transition-transform transform hover:scale-105 shadow-lg flex items-center gap-2">
+                        <i class="fa-solid fa-calendar-check"></i> AGENDAR CORTE
+                    </button>
+                </div>
+                
+                <div class="mt-8 bg-card/80 backdrop-blur-md border border-gray-700 p-5 rounded-xl w-full max-w-sm shadow-2xl relative overflow-hidden group z-10">
+                    <div class="absolute top-0 right-0 w-20 h-20 bg-gold blur-3xl opacity-20 group-hover:opacity-40 transition-opacity"></div>
+                    
+                    <div class="flex justify-between items-end mb-3">
+                        <div>
+                            <h3 class="text-white font-display text-lg">Programa Fidelidade</h3>
+                            <p class="text-xs text-gray-400">Complete 10 cortes e ganhe 1 grátis!</p>
+                        </div>
+                        <div class="text-gold font-bold text-2xl" id="loyalty-count">0/10</div>
+                    </div>
+
+                    <div class="w-full bg-gray-800 rounded-full h-3 mb-4 overflow-hidden">
+                        <div id="loyalty-bar" class="bg-gradient-to-r from-yellow-600 to-gold h-full rounded-full transition-all duration-1000" style="width: 0%"></div>
+                    </div>
+
+                    <div class="grid grid-cols-10 gap-1 text-center" id="loyalty-stamps">
+                        </div>
+                </div>
+
             </section>
 
             <section id="tab-agendar" class="tab-content hidden fade-in p-6 md:p-12 max-w-4xl mx-auto">
-                <h2 class="text-3xl text-white font-display mb-6">Novo Agendamento</h2>
-                <form onsubmit="event.preventDefault(); confirmarAgendamento();">
-                    <h3 class="text-gold font-bold mb-3">1. Profissional</h3>
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6" id="barber-list"></div>
-                    
-                    <h3 class="text-gold font-bold mb-3">2. Serviços</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6" id="services-list"></div>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <h2 class="font-display text-3xl text-white mb-2">Novo Agendamento</h2>
+                <p class="text-gray-400 mb-8">Preencha as informações abaixo para garantir seu horário.</p>
+
+                <form id="booking-form" onsubmit="event.preventDefault(); confirmarAgendamento();">
+                    <div class="mb-8">
+                        <h3 class="text-gold font-bold mb-4 flex items-center gap-2"><span class="bg-gray-800 w-6 h-6 rounded-full flex items-center justify-center text-xs">1</span> Escolha o Profissional</h3>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4" id="barber-list"></div>
+                    </div>
+                    <div class="mb-8">
+                        <h3 class="text-gold font-bold mb-4 flex items-center gap-2"><span class="bg-gray-800 w-6 h-6 rounded-full flex items-center justify-center text-xs">2</span> Selecione os Serviços</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3" id="services-list"></div>
+                    </div>
+                    <div class="mb-8 grid grid-cols-1 md:grid-cols-2 gap-8">
                         <div>
-                            <h3 class="text-gold font-bold mb-3">3. Data</h3>
-                            <input type="date" id="date-select" class="w-full bg-input text-white p-3 rounded border border-gray-700" onchange="loadAvailableTimes()">
+                            <h3 class="text-gold font-bold mb-4 flex items-center gap-2"><span class="bg-gray-800 w-6 h-6 rounded-full flex items-center justify-center text-xs">3</span> Selecione a Data</h3>
+                            <select id="date-select" class="w-full bg-card border border-gray-700 text-white p-4 rounded-lg focus:outline-none focus:border-gold" required onchange="renderTimeSlots()">
+                                <option value="" disabled selected>Escolha o profissional primeiro</option>
+                            </select>
                         </div>
                         <div>
-                            <h3 class="text-gold font-bold mb-3">4. Horário</h3>
+                            <h3 class="text-gold font-bold mb-4 flex items-center gap-2"><i class="fa-regular fa-clock"></i> Horários Disponíveis</h3>
                             <div class="grid grid-cols-4 gap-2" id="time-slots">
-                                <p class="text-gray-500 text-sm col-span-4 italic">Selecione data e barbeiro.</p>
+                                <p class="text-gray-500 text-sm col-span-4 italic">Selecione uma data primeiro.</p>
                             </div>
                         </div>
                     </div>
-
-                    <button type="submit" class="w-full bg-gold text-darker font-bold py-4 rounded mt-4 hover:bg-yellow-600 transition">CONFIRMAR AGENDAMENTO</button>
+                    <button type="submit" class="w-full bg-gold hover:bg-yellow-600 text-darker font-bold py-4 rounded-lg shadow-lg transition-all text-lg mt-4" id="btn-confirm">
+                        CONFIRMAR AGENDAMENTO
+                    </button>
                 </form>
             </section>
 
             <section id="tab-historico" class="tab-content hidden fade-in p-6 md:p-12 max-w-4xl mx-auto">
-                <h2 class="text-3xl text-white font-display mb-6">Meus Agendamentos</h2>
-                <div id="history-list" class="space-y-4">Carregando...</div>
+                <div class="flex justify-between items-end mb-8">
+                    <div>
+                        <h2 class="font-display text-3xl text-white mb-2">Meus Agendamentos</h2>
+                        <p class="text-gray-400">Acompanhe seus próximos serviços.</p>
+                    </div>
+                </div>
+                
+                <div id="history-list" class="space-y-4"></div>
             </section>
+
+
         </main>
     </div>
 
+    <div id="success-modal" class="fixed inset-0 flex items-center justify-center z-50 hidden bg-black bg-opacity-80 backdrop-blur-sm">
+        <div class="bg-card border border-gold p-8 rounded-2xl text-center max-w-sm mx-4 shadow-2xl">
+            <div class="w-16 h-16 bg-gold rounded-full flex items-center justify-center mx-auto mb-4 text-darker text-3xl"><i class="fa-solid fa-check"></i></div>
+            <h3 class="text-2xl font-display text-white mb-2">Agendado!</h3>
+            <p class="text-gray-400 mb-6">Serviço confirmado. Verifique se as informações estão corretas no Histórico, você tem 5 minutos para editar.</p>
+            <button onclick="fecharModal()" class="bg-white text-darker font-bold py-2 px-6 rounded-lg hover:bg-gray-200 w-full">Ver Histórico</button>
+        </div>
+    </div>
+
     <script>
-        // DADOS
+        // --- DADOS DO SISTEMA (mesmos do index(1).html) ---
         const barbers = [
-            { name: 'Renan Silva', img: 'https://randomuser.me/api/portraits/men/32.jpg' },
-            { name: 'Marcos Dias', img: 'https://randomuser.me/api/portraits/men/33.jpg' },
-            { name: 'André Luiz', img: 'https://randomuser.me/api/portraits/men/36.jpg' },
-            { name: 'Júnior', img: 'https://randomuser.me/api/portraits/men/50.jpg' }
+            { id: 1, name: 'Renan Silva', img: 'https://randomuser.me/api/portraits/men/32.jpg', rating: 5.0 },
+            { id: 2, name: 'Marcos Dias', img: 'https://randomuser.me/api/portraits/men/33.jpg', rating: 5.0 },
+            { id: 3, name: 'André Luiz', img: 'https://randomuser.me/api/portraits/men/36.jpg', rating: 5.0 },
+            { id: 4, name: 'Júnior', img: 'https://randomuser.me/api/portraits/men/50.jpg', rating: 5.0 },
         ];
         const services = [
-            { id: 'corte', name: 'Corte de Cabelo', price: 50 },
-            { id: 'barba', name: 'Barba', price: 40 },
-            { id: 'combo', name: 'Cabelo + Barba', price: 80 }
+            { id: 'corte', name: 'Corte de Cabelo', price: 50.00, icon: 'fa-scissors' },
+            { id: 'barba', name: 'Barba Modelada', price: 40.00, icon: 'fa-face-smile' },
+            { id: 'combo', name: 'Combo (Cabelo + Barba)', price: 80.00, icon: 'fa-user-tie' },
+            { id: 'pigmentacao', name: 'Pigmentação', price: 35.00, icon: 'fa-fill-drip' },
+            { id: 'sobrancelha', name: 'Sobrancelha', price: 20.00, icon: 'fa-eye' },
+            { id: 'pezinho', name: 'Pezinho / Acabamento', price: 15.00, icon: 'fa-ruler-horizontal' },
         ];
 
+        // --- ESTADO ---
+        let currentUser = null; // firebase user object
         let selectedBarber = null;
         let selectedServices = [];
         let selectedTime = null;
-        let currentUser = null;
 
-        // AUTH LISTENER
-        auth.onAuthStateChanged(user => {
-            if (user) {
-                currentUser = user;
-                document.getElementById('auth-screen').classList.add('hidden');
-                document.getElementById('app-screen').classList.remove('hidden');
-                document.getElementById('app-screen').classList.add('flex');
-                
-                // Redirecionamento Admin
-                if(user.email === 'barbeiro2003@gmail.com') { // Email em minúsculo
-                    window.location.href = 'painel.html';
-                }
+        // On load: render static UI pieces (barbers + services). Auth listener will show app when logged.
+        window.onload = () => {
+            renderBarbers();
+            renderServices();
+            // auth state listener below handles showing/hiding screens
+        };
 
-                document.getElementById('user-name-display').innerText = user.displayName || user.email;
-                renderBarbers();
-                renderServices();
-                loadHistory();
-            } else {
-                document.getElementById('app-screen').classList.add('hidden');
-                document.getElementById('app-screen').classList.remove('flex');
-                document.getElementById('auth-screen').classList.remove('hidden');
-            }
-        });
-
-        // AUTH FUNCTIONS
+        // ---------------- AUTH (firebase) ----------------
         function toggleAuthMode() {
-            document.getElementById('login-form').classList.toggle('hidden');
-            document.getElementById('register-form').classList.toggle('hidden');
+            const loginForm = document.getElementById('login-form');
+            const regForm = document.getElementById('register-form');
+            loginForm.classList.toggle('hidden');
+            regForm.classList.toggle('hidden');
+        }
+
+        function handleRegister() {
+            const name = document.getElementById('reg-name').value;
+            const email = document.getElementById('reg-email').value;
+            const pass = document.getElementById('reg-pass').value;
+
+            if(!name || !email || !pass) return alert("Preencha todos os campos.");
+            if(pass.length < 6) return alert('Senha deve ter ao menos 6 caracteres.');
+
+            auth.createUserWithEmailAndPassword(email, pass)
+                .then(cred => cred.user.updateProfile({ displayName: name }))
+                .catch(e => alert('Erro: ' + e.message));
         }
 
         function handleLogin() {
             const email = document.getElementById('login-email').value;
             const pass = document.getElementById('login-pass').value;
-            auth.signInWithEmailAndPassword(email, pass).catch(e => alert("Erro: " + e.message));
-        }
-
-        function handleRegister() {
-            const email = document.getElementById('reg-email').value;
-            const pass = document.getElementById('reg-pass').value;
-            const name = document.getElementById('reg-name').value;
-            
-            auth.createUserWithEmailAndPassword(email, pass).then(cred => {
-                return cred.user.updateProfile({ displayName: name });
-            }).catch(e => alert("Erro: " + e.message));
+            auth.signInWithEmailAndPassword(email, pass).catch(e => alert('Erro: ' + e.message));
         }
 
         function logout() {
             auth.signOut();
         }
 
-        // APP LOGIC
-        function switchTab(tab) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-            document.getElementById(`tab-${tab}`).classList.remove('hidden');
-            
-            document.querySelectorAll('.nav-item').forEach(el => el.className = 'nav-item text-gray-400 cursor-pointer');
-            document.getElementById(`nav-${tab}`).className = 'nav-item text-gold font-bold cursor-pointer';
-        }
+        // Auth state listener: shows app when logged, hides when not.
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                currentUser = user;
+                // Admin redirect (case-insensitive)
+                if(user.email && user.email.toLowerCase() === 'barbeiro2003@gmail.com') {
+                    window.location.href = 'painel.html';
+                    return;
+                }
 
+                document.getElementById('auth-screen').classList.add('hidden');
+                document.getElementById('app-screen').classList.remove('hidden');
+                document.getElementById('app-screen').classList.add('flex');
+
+                document.getElementById('user-name-display').innerText = user.displayName || user.email;
+                document.getElementById('mobile-user-display').innerText = `Olá, ${ (user.displayName||user.email).split(' ')[0] }`;
+                document.getElementById('user-avatar').innerText = (user.displayName||user.email).charAt(0).toUpperCase();
+
+                // start listening to user's appointments
+                attachHistoryListener();
+                renderLoyaltyCard();
+                switchTab('home');
+            } else {
+                currentUser = null;
+                document.getElementById('app-screen').classList.add('hidden');
+                document.getElementById('app-screen').classList.remove('flex');
+                document.getElementById('auth-screen').classList.remove('hidden');
+                // detach realtime listener if needed
+                if(window._historyUnsub) { window._historyUnsub(); window._historyUnsub = null; }
+            }
+        });
+
+        // ---------------- UI render (barbers / services) ----------------
         function renderBarbers() {
-            document.getElementById('barber-list').innerHTML = barbers.map(b => `
-                <label class="cursor-pointer">
-                    <input type="radio" name="barber" value="${b.name}" class="peer sr-only" onchange="selectedBarber='${b.name}'; loadAvailableTimes();">
-                    <div class="bg-card p-4 rounded text-center border-2 border-transparent peer-checked:border-gold peer-checked:bg-gray-800">
-                        <img src="${b.img}" class="w-16 h-16 rounded-full mx-auto mb-2">
-                        <div class="text-white font-bold text-sm">${b.name}</div>
+            const container = document.getElementById('barber-list');
+            container.innerHTML = barbers.map(barber => `
+                <label class="cursor-pointer group relative">
+                    <input type="radio" name="barber" value="${barber.id}" class="peer sr-only" onchange="selectedBarber = ${barber.id}; loadAvailableDates();">
+                    <div class="bg-card border-2 border-transparent p-4 rounded-xl text-center hover:bg-gray-800 transition-all peer-checked:border-gold peer-checked:bg-gray-800">
+                        <img src="${barber.img}" class="w-16 h-16 rounded-full mx-auto mb-3 object-cover border-2 border-gray-700 peer-checked:border-gold">
+                        <h4 class="font-bold text-white text-sm">${barber.name}</h4>
+                        <div class="text-gold text-xs mt-1"><i class="fa-solid fa-star"></i> ${barber.rating}</div>
                     </div>
                 </label>
             `).join('');
         }
 
         function renderServices() {
-            document.getElementById('services-list').innerHTML = services.map(s => `
-                <label class="cursor-pointer">
-                    <input type="checkbox" value="${s.id}" class="peer sr-only service-checkbox" onchange="toggleService('${s.id}', '${s.name}', ${s.price})">
-                    <div class="bg-card p-4 rounded border border-gray-700 flex justify-between items-center">
-                        <div class="text-white font-bold text-sm">${s.name}</div>
-                        <div class="text-gold text-xs">R$ ${s.price}</div>
+            const container = document.getElementById('services-list');
+            container.innerHTML = services.map(service => `
+                <label class="cursor-pointer relative block">
+                    <input type="checkbox" value="${service.id}" class="peer sr-only service-checkbox" onchange="toggleService('${service.id}', '${service.name}', ${service.price})">
+                    <div class="bg-card border border-gray-700 p-4 rounded-lg flex justify-between items-center transition-all hover:bg-gray-800">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center text-gold"><i class="fa-solid ${service.icon}"></i></div>
+                            <div>
+                                <h4 class="font-bold text-white text-sm">${service.name}</h4>
+                                <p class="text-xs text-gray-400">R$ ${service.price.toFixed(2).replace('.', ',')}</p>
+                            </div>
+                        </div>
+                        <div class="w-5 h-5 rounded-full border border-gray-500 peer-checked:bg-gold peer-checked:border-gold"></div>
                     </div>
                 </label>
             `).join('');
         }
 
         function toggleService(id, name, price) {
-            const idx = selectedServices.findIndex(x => x.id === id);
-            if(idx > -1) selectedServices.splice(idx, 1);
-            else selectedServices.push({id, name, price});
+            const index = selectedServices.findIndex(s => s.id === id);
+            if (index > -1) selectedServices.splice(index, 1);
+            else selectedServices.push({ id, name, price });
         }
 
-        async function loadAvailableTimes() {
+        // ---------------- DATES & TIMES ----------------
+        // loadAvailableDates reads schedule info from Firestore (collection "schedules") using doc id `${date}_${barberName}`
+        // but to list available dates we will try to read a small admin collection 'scheduleIndex' where admin stores active dates per barber
+        // Fallback: if no Firestore schedule infra, we try to read localStorage keys like before for compatibility.
+
+        function loadAvailableDates() {
+            selectedTime = null;
+            document.getElementById('time-slots').innerHTML = '<p class="text-gray-500 text-sm col-span-4 italic">Selecione uma data acima.</p>';
+            const dateSelect = document.getElementById('date-select');
+            dateSelect.innerHTML = '<option value="" disabled selected>Carregando datas...</option>';
+
+            if (!selectedBarber) {
+                dateSelect.innerHTML = '<option value="" disabled selected>Escolha o profissional primeiro</option>';
+                return;
+            }
+
+            const barberObj = barbers.find(b => b.id === selectedBarber);
+            const barberName = barberObj.name;
+            const today = new Date().setHours(0,0,0,0);
+
+            // Try Firestore: collection 'scheduleIndex' document per barber with array of dates
+            db.collection('scheduleIndex').doc(barberName).get().then(doc => {
+                if(doc.exists && Array.isArray(doc.data().dates) && doc.data().dates.length > 0) {
+                    const availableDates = doc.data().dates.filter(d => new Date(d + 'T00:00:00').getTime() >= today).sort();
+                    populateDateSelect(availableDates);
+                } else {
+                    // Fallback to scanning localStorage keys (backwards compatibility)
+                    const availableDates = [];
+                    for (let i = 0; i < localStorage.length; i++) {
+                        const key = localStorage.key(i);
+                        if (key.startsWith('scheduleConfig_') && key.endsWith(`_${barberName}`)) {
+                            const dateStr = key.split('_')[1];
+                            const dateObj = new Date(`${dateStr}T00:00:00`);
+                            if (dateObj.getTime() >= today) availableDates.push(dateStr);
+                        }
+                    }
+                    availableDates.sort();
+                    populateDateSelect(availableDates);
+                }
+            }).catch(_ => {
+                // On error, fallback to localStorage
+                const availableDates = [];
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key.startsWith('scheduleConfig_') && key.endsWith(`_${barberName}`)) {
+                        const dateStr = key.split('_')[1];
+                        const dateObj = new Date(`${dateStr}T00:00:00`);
+                        if (dateObj.getTime() >= today) availableDates.push(dateStr);
+                    }
+                }
+                availableDates.sort();
+                populateDateSelect(availableDates);
+            });
+        }
+
+        function populateDateSelect(availableDates) {
+            const dateSelect = document.getElementById('date-select');
+            dateSelect.innerHTML = '<option value="" disabled selected>Selecione a Data</option>';
+            availableDates.forEach(dateStr => {
+                const dateObj = new Date(dateStr);
+                const displayDate = dateObj.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+                const weekday = dateObj.toLocaleDateString('pt-BR', { weekday: 'short' });
+
+                const option = document.createElement('option');
+                option.value = dateStr;
+                option.textContent = `${displayDate} (${weekday})`;
+                dateSelect.appendChild(option);
+            });
+            if (availableDates.length === 0) dateSelect.innerHTML = '<option value="" disabled selected>Sem datas disponíveis!</option>';
+        }
+
+        function renderTimeSlots() {
             const date = document.getElementById('date-select').value;
             const container = document.getElementById('time-slots');
-            container.innerHTML = '';
             selectedTime = null;
+            if(!date) return;
+            if(!selectedBarber) { container.innerHTML = '<p class="text-red-400 text-sm col-span-4">Selecione um profissional primeiro.</p>'; return; }
 
-            if(!selectedBarber || !date) return;
-
-            // 1. Verificar configuração do barbeiro (Escala)
-            const configDoc = await db.collection('schedules').doc(`${date}_${selectedBarber}`).get();
+            const barberObj = barbers.find(b => b.id === selectedBarber);
             const defaultSlots = ['09:00', '10:00', '11:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00'];
-            let activeSlots = configDoc.exists ? configDoc.data().slots : defaultSlots;
 
-            // 2. Verificar agendamentos existentes no banco
-            const snapshot = await db.collection('appointments')
-                .where('barber', '==', selectedBarber)
-                .where('date', '==', date)
-                .where('status', '!=', 'Cancelado')
-                .get();
-            
-            const busyTimes = snapshot.docs.map(doc => doc.data().time);
+            // Try Firestore schedule doc first
+            const docId = `${date}_${barberObj.name}`;
+            db.collection('schedules').doc(docId).get().then(doc => {
+                const adminConfig = doc.exists ? doc.data().slots : defaultSlots;
+                // Now fetch booked appointments for that barber and date
+                db.collection('appointments')
+                    .where('barber', '==', barberObj.name)
+                    .where('date', '==', date)
+                    .where('status', '!=', 'Cancelado')
+                    .get().then(snapshot => {
+                        const bookedTimes = snapshot.docs.map(d => d.data().time);
+                        renderSlotsUI(defaultSlots, adminConfig, bookedTimes, date);
+                    }).catch(e => {
+                        // On error reading appointments, fallback to local booked times (legacy)
+                        const bookedTimes = getGlobalBookings(date, barberObj.name);
+                        renderSlotsUI(defaultSlots, adminConfig, bookedTimes, date);
+                    });
+            }).catch(e => {
+                // Firestore read failed, fallback to localStorage logic
+                const scheduleKey = `scheduleConfig_${date}_${barberObj.name}`;
+                const adminConfig = JSON.parse(localStorage.getItem(scheduleKey) || 'null');
+                const bookedTimes = getGlobalBookings(date, barberObj.name);
+                renderSlotsUI(defaultSlots, adminConfig !== null ? adminConfig : defaultSlots, bookedTimes, date);
+            });
+        }
 
+        function renderSlotsUI(defaultSlots, availableSlots, bookedTimes, date) {
+            const container = document.getElementById('time-slots');
             container.innerHTML = defaultSlots.map(time => {
-                const isBusy = busyTimes.includes(time);
-                const isBlocked = !activeSlots.includes(time);
-                
-                // Verifica passado
-                const now = new Date();
-                const [h, m] = time.split(':');
-                const slotDate = new Date(`${date}T${time}`);
-                const isPast = slotDate < now;
-
-                if(isBusy || isBlocked || isPast) {
-                    return `<div class="py-2 text-center rounded bg-gray-900 text-gray-600 text-sm line-through cursor-not-allowed">${time}</div>`;
+                const isTaken = bookedTimes.includes(time);
+                const isAdminBlocked = !availableSlots.includes(time);
+                const isToday = new Date().toISOString().split('T')[0] === date;
+                const isPast = isToday && new Date(`${date}T${time}`) < new Date();
+                const isUnavailable = isTaken || isAdminBlocked || isPast;
+                if (isUnavailable) {
+                    let title = isPast ? "Horário já passou" : (isTaken ? "Ocupado por outro cliente" : "Bloqueado pelo profissional");
+                    return `
+                        <div class="text-center py-2 rounded border border-gray-800 bg-gray-900 text-gray-600 text-sm line-through cursor-not-allowed" title="${title}">
+                            ${time}
+                        </div>
+                    `;
+                } else {
+                    return `
+                        <label class="cursor-pointer">
+                            <input type="radio" name="time" value="${time}" class="peer sr-only time-radio" onchange="selectedTime = '${time}'">
+                            <div class="text-center py-2 rounded border border-gray-700 text-gray-300 text-sm hover:border-gold transition-colors peer-checked:bg-gold peer-checked:text-darker peer-checked:font-bold">
+                                ${time}
+                            </div>
+                        </label>
+                    `;
                 }
-                return `
-                    <label class="cursor-pointer">
-                        <input type="radio" name="time" value="${time}" class="peer sr-only time-radio" onchange="selectedTime='${time}'">
-                        <div class="py-2 text-center rounded border border-gray-700 text-gray-300 text-sm hover:border-gold transition-colors">${time}</div>
-                    </label>
-                `;
             }).join('');
         }
 
-        async function confirmarAgendamento() {
-            if(!selectedBarber || !selectedTime || selectedServices.length === 0) return alert("Preencha tudo!");
+        // Legacy helper (keeps compatibility if data still in localStorage)
+        function getGlobalBookings(date, barberName) {
+            const allUsersJson = localStorage.getItem('barberUsers');
+            if (!allUsersJson) return [];
+            const allUsers = JSON.parse(allUsersJson || '[]');
+            let bookedTimes = [];
+            allUsers.forEach(user => {
+                const hKey = `barberHistory_${user.email}`;
+                const uHistory = JSON.parse(localStorage.getItem(hKey) || '[]');
+                const matches = uHistory.filter(h => h.date === date && h.barber === barberName && h.status !== 'Cancelado');
+                matches.forEach(m => bookedTimes.push(m.time));
+            });
+            return bookedTimes;
+        }
 
-            const total = selectedServices.reduce((a, b) => a + b.price, 0);
-            
+        // ---------------- CONFIRMAR AGENDAMENTO (Firestore) ----------------
+        async function confirmarAgendamento() {
+            if (!selectedBarber) return alert("Selecione um barbeiro.");
+            if (selectedServices.length === 0) return alert("Selecione um serviço.");
+            const date = document.getElementById('date-select').value;
+            if (!date) return alert("Selecione uma data.");
+            if (!selectedTime) return alert("Selecione um horário.");
+            if(!currentUser) return alert('Usuário não autenticado.');
+
+            const barberObj = barbers.find(b => b.id === selectedBarber);
+            const total = selectedServices.reduce((acc, curr) => acc + curr.price, 0);
+
             try {
-                // Verificação final de concorrência
+                // Concurrency check
                 const check = await db.collection('appointments')
-                    .where('barber', '==', selectedBarber)
-                    .where('date', '==', document.getElementById('date-select').value)
+                    .where('barber', '==', barberObj.name)
+                    .where('date', '==', date)
                     .where('time', '==', selectedTime)
                     .where('status', '!=', 'Cancelado')
                     .get();
-
-                if(!check.empty) return alert("Ops! Alguém acabou de reservar esse horário.");
+                if(!check.empty) return alert('Este horário acabou de ser reservado por outro cliente.');
 
                 await db.collection('appointments').add({
                     userId: currentUser.uid,
+                    userEmail: currentUser.email,
                     userName: currentUser.displayName || currentUser.email,
-                    barber: selectedBarber,
+                    barber: barberObj.name,
+                    barberImg: barberObj.img,
                     services: selectedServices.map(s => s.name).join(', '),
-                    date: document.getElementById('date-select').value,
+                    date: date,
                     time: selectedTime,
                     total: total,
                     status: 'Confirmado',
                     createdAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
 
-                alert("Agendamento Confirmado!");
-                switchTab('historico');
-                // Reset form
-                selectedServices = [];
-                selectedBarber = null;
-                selectedTime = null;
-                document.getElementById('date-select').value = '';
-                document.getElementById('time-slots').innerHTML = '';
+                document.getElementById('success-modal').classList.remove('hidden');
             } catch(e) {
                 console.error(e);
-                alert("Erro ao agendar.");
+                alert('Erro ao agendar.');
             }
         }
 
-        function loadHistory() {
-            db.collection('appointments')
+        function fecharModal() {
+            document.getElementById('success-modal').classList.add('hidden');
+            document.getElementById('booking-form').reset();
+            selectedBarber = null;
+            selectedServices = [];
+            selectedTime = null;
+            document.getElementById('date-select').innerHTML = '<option value="" disabled selected>Escolha o profissional primeiro</option>';
+            document.getElementById('time-slots').innerHTML = '<p class="text-gray-500 text-sm col-span-4 italic">Selecione uma data primeiro.</p>';
+            renderLoyaltyCard();
+            switchTab('historico');
+        }
+
+        // ---------------- HISTÓRICO (real-time) ----------------
+        function attachHistoryListener() {
+            if(!currentUser) return;
+            if(window._historyUnsub) { window._historyUnsub(); window._historyUnsub = null; }
+
+            window._historyUnsub = db.collection('appointments')
                 .where('userId', '==', currentUser.uid)
-                .orderBy('date', 'desc')
+                .orderBy('createdAt', 'desc')
                 .onSnapshot(snapshot => {
-                    const list = document.getElementById('history-list');
-                    if(snapshot.empty) {
-                        list.innerHTML = '<p class="text-gray-500 text-center">Nenhum agendamento.</p>';
-                        return;
-                    }
-
-                    list.innerHTML = snapshot.docs.map(doc => {
-                        const d = doc.data();
-                        const color = d.status === 'Cancelado' ? 'text-red-500' : (d.status === 'Concluído' ? 'text-green-500' : 'text-blue-500');
-                        
-                        // Formata Data
-                        const dateParts = d.date.split('-'); // YYYY-MM-DD
-                        const dateBr = `${dateParts[2]}/${dateParts[1]}`;
-
-                        return `
-                        <div class="bg-card border-l-4 ${d.status === 'Cancelado' ? 'border-red-500' : 'border-gold'} p-4 rounded shadow flex justify-between items-center">
-                            <div>
-                                <h4 class="font-bold text-white">${d.barber}</h4>
-                                <p class="text-xs text-gray-400">${d.services}</p>
-                                <div class="text-gold font-mono text-sm mt-1">${dateBr} às ${d.time}</div>
-                            </div>
-                            <div class="text-right">
-                                <div class="font-bold text-white">R$ ${d.total}</div>
-                                <div class="text-xs font-bold uppercase ${color}">${d.status}</div>
-                                ${d.status === 'Confirmado' ? `<button onclick="cancelAppt('${doc.id}')" class="text-xs text-red-400 mt-2 underline">Cancelar</button>` : ''}
-                            </div>
-                        </div>`;
-                    }).join('');
-                });
+                    const items = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+                    renderHistoryFromDocs(items);
+                }, err => console.error(err));
         }
 
-        function cancelAppt(id) {
-            if(confirm("Deseja cancelar?")) {
-                db.collection('appointments').doc(id).update({ status: 'Cancelado' });
+        function renderHistoryFromDocs(history) {
+            const container = document.getElementById('history-list');
+            if (!history || history.length === 0) {
+                container.innerHTML = `<div class="text-center py-20 opacity-50"><i class="fa-regular fa-calendar-xmark text-4xl mb-4"></i><p>Nenhum agendamento encontrado.</p></div>`;
+                return;
             }
+
+            container.innerHTML = history.map(item => {
+                // createdAt may be a timestamp object
+                const dateObj = new Date(item.date);
+                dateObj.setMinutes(dateObj.getMinutes() + dateObj.getTimezoneOffset());
+                const dateFormatted = dateObj.toLocaleDateString('pt-BR');
+
+                const isCanceled = item.status === 'Cancelado';
+                const isConcluido = item.status === 'Concluído';
+
+                // compute edit window: 5 minutes from createdAt (if available). If not available assume can't edit.
+                let canEdit = false;
+                if(item.createdAt && item.createdAt.toMillis) {
+                    const createdMs = item.createdAt.toMillis();
+                    canEdit = (Date.now() - createdMs) < 300000 && !isCanceled && !isConcluido;
+                }
+
+                let statusClass = 'text-blue-500';
+                if(isCanceled) statusClass = 'text-red-500';
+                if(isConcluido) statusClass = 'text-green-500';
+
+                return `
+                <div class="relative overflow-hidden rounded-r-lg shadow-lg group transition-all duration-300 ${isCanceled ? 'border-l-4 border-red-600' : 'bg-card border-l-4 border-gold'}">
+                    ${isCanceled ? `
+                        <div class="absolute inset-0 z-30 flex flex-col items-center justify-center bg-darker/80 backdrop-blur-sm text-center p-4">
+                            <h3 class="text-red-500 font-display text-2xl font-bold uppercase tracking-wider mb-2">Serviço Cancelado</h3>
+                            <p class="text-gray-300 text-sm mb-1">Este agendamento foi cancelado.</p>
+                        </div>
+                    ` : ''}
+
+                    <div class="p-7 flex justify-between items-center relative z-10 ${isCanceled ? 'opacity-30 pointer-events-none' : ''}">
+                        ${!isCanceled ? `
+                        <button onclick="cancelAppt('${item.id}')" class="absolute top-1 right-1 w-4 h-4 bg-red-600 hover:bg-red-500 text-white rounded-full flex items-center justify-center shadow z-20" title="Remover agendamento" aria-label="Remover agendamento">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                        ` : ''}
+
+                        ${canEdit ? `
+                            <button onclick="editAppointment('${item.id}')" class="absolute bottom-4 right-4 text-xs bg-gray-700 hover:bg-white hover:text-darker text-white px-3 py-1 rounded transition-colors shadow z-20 flex items-center gap-1">
+                                <i class="fa-solid fa-pen"></i> Editar (5min)
+                            </button>
+                        ` : ''}
+
+                        <div class="flex items-center gap-4">
+                            <img src="${item.barberImg || ''}" class="w-12 h-12 rounded-full border border-gray-600">
+                            <div>
+                                <h4 class="font-bold text-white text-lg">${item.barber}</h4>
+                                <p class="text-gray-400 text-sm">${item.services}</p>
+                                <div class="flex items-center gap-3 mt-2 text-xs font-mono text-gold">
+                                    <span class="bg-gray-800 px-2 py-1 rounded"><i class="fa-regular fa-calendar"></i> ${dateFormatted}</span>
+                                    <span class="bg-gray-800 px-2 py-1 rounded"><i class="fa-regular fa-clock"></i> ${item.time}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <span class="block text-xl font-bold text-white">R$ ${Number(item.total).toFixed(2).replace('.',',')}</span>
+                            <span class="text-xs ${statusClass} font-bold uppercase tracking-wider">${item.status}</span>
+                        </div>
+                    </div>
+                </div>
+            `}).join('');
         }
+
+        // Cancel appointment (set status in firestore)
+        function cancelAppt(id) {
+            if(!confirm('Deseja cancelar?')) return;
+            db.collection('appointments').doc(id).update({ status: 'Cancelado', canceledAt: firebase.firestore.FieldValue.serverTimestamp() }).catch(e => alert('Erro: ' + e.message));
+        }
+
+        // Edit appointment: for firestore we allow editing by cancelling the doc and pre-filling the form (similar UX)
+        async function editAppointment(id) {
+            if(!confirm('Você tem 5 minutos para editar. Confirmar edição? O agendamento atual será temporariamente cancelado para que você possa refazê-lo.')) return;
+            const doc = await db.collection('appointments').doc(id).get();
+            if(!doc.exists) return alert('Agendamento não encontrado.');
+            const item = doc.data();
+            // mark as Cancelado (so slot becomes available). We keep canceledAt so admin cleanup works.
+            await db.collection('appointments').doc(id).update({ status: 'Cancelado', canceledAt: firebase.firestore.FieldValue.serverTimestamp() });
+
+            // prefill form
+            selectedBarber = barbers.find(b => b.name === item.barber).id;
+            renderBarbers();
+            // select radio
+            setTimeout(() => {
+                const barberRadio = document.querySelector(`input[name="barber"][value="${selectedBarber}"]`);
+                if(barberRadio) { barberRadio.checked = true; barberRadio.dispatchEvent(new Event('change')); }
+            }, 200);
+
+            setTimeout(() => {
+                const dateSelect = document.getElementById('date-select');
+                dateSelect.value = item.date;
+                dateSelect.dispatchEvent(new Event('change'));
+                // services
+                selectedServices = [];
+                item.services.split(', ').forEach(serviceName => {
+                    const s = services.find(ss => ss.name === serviceName);
+                    if(s) {
+                        const checkbox = document.querySelector(`input[type="checkbox"][value="${s.id}"]`);
+                        if(checkbox) { checkbox.checked = true; toggleService(s.id, s.name, s.price); }
+                    }
+                });
+                selectedTime = item.time;
+                const timeRadio = document.querySelector(`input[name="time"][value="${selectedTime}"]`);
+                if(timeRadio) timeRadio.checked = true;
+            }, 500);
+
+            alert('Dados do agendamento carregados. Você tem 5 minutos para fazer correções e confirmar novamente.');
+        }
+
+        // Loyalty card uses appointments with status 'Concluído'
+        function renderLoyaltyCard() {
+            if(!currentUser) return;
+            // use a query to count 'Concluído' documents
+            db.collection('appointments').where('userId','==', currentUser.uid).where('status','==','Concluído').get().then(snap => {
+                const totalCompleted = snap.size;
+                const count = totalCompleted % 10;
+                document.getElementById('loyalty-count').innerText = `${count}/10`;
+                document.getElementById('loyalty-bar').style.width = `${(count/10)*100}%`;
+                let stampsHTML = '';
+                for(let i=1;i<=10;i++){
+                    const isStamped = i <= count || (totalCompleted >= 10 && i===10 && count===0);
+                    stampsHTML += `
+                        <div class="w-full aspect-square rounded-full flex items-center justify-center text-[10px] font-bold shadow ${isStamped ? 'bg-gold text-darker' : 'bg-gray-800 border border-gray-700 text-gray-600'}" title="${isStamped ? 'Concluído' : i}">
+                            ${isStamped ? '<i class="fa-solid fa-scissors"></i>' : i}
+                        </div>
+                    `;
+                }
+                document.getElementById('loyalty-stamps').innerHTML = stampsHTML;
+            }).catch(e => console.error(e));
+        }
+
+        // Utility: switch tab (keeps UI of original)
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.nav-item').forEach(el => {
+                el.classList.remove('text-gold', 'bg-gray-800');
+                el.classList.add('text-gray-400');
+                if(window.innerWidth >= 768) el.classList.add('md:bg-transparent');
+            });
+            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+            const activeBtn = document.getElementById(`nav-${tabId}`);
+            activeBtn.classList.remove('text-gray-400', 'md:bg-transparent');
+            activeBtn.classList.add('text-gold', 'bg-gray-800');
+            if (tabId === 'historico') { /* history already realtime */ }
+        }
+
     </script>
 </body>
 </html>
