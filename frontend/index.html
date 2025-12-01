@@ -278,643 +278,402 @@
     </div>
 
     <script>
-        // --- DADOS DO SISTEMA ---
-        const barbers = [
-            { id: 1, name: 'Renan Silva', img: 'https://randomuser.me/api/portraits/men/32.jpg', rating: 5.0 },
-            { id: 2, name: 'Marcos Dias', img: 'https://randomuser.me/api/portraits/men/33.jpg', rating: 5.0 },
-            { id: 3, name: 'André Luiz', img: 'https://randomuser.me/api/portraits/men/36.jpg', rating: 5.0 },
-            { id: 4, name: 'Júnior', img: 'https://randomuser.me/api/portraits/men/50.jpg', rating: 5.0 },
-        ];
-        const services = [
-            { id: 'corte', name: 'Corte de Cabelo', price: 50.00, icon: 'fa-scissors' },
-            { id: 'barba', name: 'Barba Modelada', price: 40.00, icon: 'fa-face-smile' },
-            { id: 'combo', name: 'Combo (Cabelo + Barba)', price: 80.00, icon: 'fa-user-tie' },
-            { id: 'pigmentacao', name: 'Pigmentação', price: 35.00, icon: 'fa-fill-drip' },
-            { id: 'sobrancelha', name: 'Sobrancelha', price: 20.00, icon: 'fa-eye' },
-            { id: 'pezinho', name: 'Pezinho / Acabamento', price: 15.00, icon: 'fa-ruler-horizontal' },
-        ];
+    // 1. CONFIGURAÇÃO DA API (ATENÇÃO: SUBSTITUA PELA SUA URL DO RENDER APÓS O DEPLOY DO BACKEND)
+    const API_URL = 'https://barbearia-api-xxxx.onrender.com'; // **MUDAR DEPOIS DE OBTER A URL**
 
-        // --- ESTADO DO USUÁRIO ---
-        let currentUser = null; // { email, name }
-        let selectedBarber = null;
-        let selectedServices = [];
-        let selectedTime = null;
-        // let selectedDate = null; // Não necessário como variável global, mas pode ser usado se preferir.
+    // VARIÁVEIS GLOBAIS
+    let currentUser = null;
+    let currentToken = null;
 
-        window.onload = () => {
-            checkLogin();
-            renderBarbers();
-            renderServices();
-            // A data mínima não é mais necessária no select, pois as datas serão carregadas dinamicamente.
-            // const today = new Date().toISOString().split('T')[0];
-            // document.getElementById('date-input').setAttribute('min', today); 
+    tailwind.config = {
+        theme: {
+            extend: {
+                colors: {
+                    gold: '#d4af37',
+                    dark: '#121212',
+                    darker: '#0a0a0a',
+                    card: '#1e1e1e',
+                    input: '#2a2a2a',
+                    success: '#10b981',
+                    danger: '#ef4444' 
+                },
+                fontFamily: {
+                    sans: ['Roboto', 'sans-serif'],
+                    display: ['Oswald', 'sans-serif'],
+                }
+            }
+        }
+    }
+    
+    // UTILS
+    const $ = selector => document.querySelector(selector);
+    const $$ = selector => document.querySelectorAll(selector);
+    
+    // --- LÓGICA DE NAVEGAÇÃO E AUTENTICAÇÃO ---
+
+    function showSection(id) {
+        $$('.content-section').forEach(section => {
+            section.classList.add('hidden');
+        });
+        $(`#${id}`).classList.remove('hidden');
+    }
+
+    function checkAuth() {
+        currentToken = localStorage.getItem('authToken');
+        currentUser = JSON.parse(localStorage.getItem('currentUser'));
+
+        if (currentToken && currentUser) {
+            // Se for admin, redireciona para o painel.html
+            if (currentUser.role === 'admin') {
+                window.location.href = 'painel.html';
+                return;
+            }
+            // Se for cliente, mostra a tela principal
+            $('#userNameDisplay').innerText = currentUser.name;
+            showSection('main-app');
+            renderHistory();
+        } else {
+            showSection('auth-screen');
+            showSection('login-form'); // Inicia na tela de login
+        }
+    }
+
+    async function handleLogin(e) {
+        e.preventDefault();
+        const email = $('#login-email').value;
+        const password = $('#login-password').value;
+
+        try {
+            const response = await fetch(`${API_URL}/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                // Login com sucesso, salva token e usuário
+                localStorage.setItem('authToken', data.token);
+                localStorage.setItem('currentUser', JSON.stringify(data.user));
+                checkAuth(); // Redireciona ou mostra app
+            } else {
+                alert(`Erro no Login: ${data.message || 'Credenciais inválidas.'}`);
+            }
+        } catch (error) {
+            console.error('Erro de rede:', error);
+            alert('Erro ao conectar com o servidor. Tente novamente.');
+        }
+    }
+
+    async function handleRegister(e) {
+        e.preventDefault();
+        const name = $('#register-name').value;
+        const email = $('#register-email').value;
+        const password = $('#register-password').value;
+
+        try {
+            const response = await fetch(`${API_URL}/register`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, email, password })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                alert('Registro bem-sucedido! Faça login.');
+                showSection('login-form');
+            } else {
+                alert(`Erro no Registro: ${data.message || 'Email já cadastrado ou erro no servidor.'}`);
+            }
+        } catch (error) {
+            console.error('Erro de rede:', error);
+            alert('Erro ao conectar com o servidor. Tente novamente.');
+        }
+    }
+
+    function logout() {
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('currentUser');
+        currentToken = null;
+        currentUser = null;
+        window.location.reload();
+    }
+    
+    // --- LÓGICA DE AGENDAMENTO E DISPONIBILIDADE ---
+
+    const barbeiros = ['Marcos', 'João', 'Felipe'];
+    const servicos = {
+        'Corte Masculino': 35.00,
+        'Barba': 30.00,
+        'Sobrancelha': 15.00,
+        'Corte + Barba': 60.00
+    };
+
+    function initBarbers() {
+        const select = $('#barber-select');
+        barbeiros.forEach(barber => {
+            const option = document.createElement('option');
+            option.value = barber;
+            option.innerText = barber;
+            select.appendChild(option);
+        });
+    }
+
+    function initServices() {
+        const container = $('#services-container');
+        Object.keys(servicos).forEach(service => {
+            const price = servicos[service];
+            const html = `
+                <label class="flex items-center space-x-2 p-2 bg-card rounded shadow-md cursor-pointer hover:bg-input transition-colors">
+                    <input type="checkbox" name="service" value="${service}" data-price="${price}" class="w-4 h-4 text-gold bg-dark border-input rounded focus:ring-gold">
+                    <span class="text-sm md:text-base">${service}</span>
+                    <span class="text-xs md:text-sm text-gold ml-auto">R$ ${price.toFixed(2).replace('.', ',')}</span>
+                </label>
+            `;
+            container.innerHTML += html;
+        });
+
+        // Adiciona listener para calcular total
+        $$('input[name="service"]').forEach(checkbox => {
+            checkbox.addEventListener('change', updateAppointmentTotal);
+        });
+        updateAppointmentTotal();
+    }
+
+    function updateAppointmentTotal() {
+        let total = 0;
+        $$('input[name="service"]:checked').forEach(checkbox => {
+            total += parseFloat(checkbox.getAttribute('data-price'));
+        });
+        $('#total-value').innerText = `R$ ${total.toFixed(2).replace('.', ',')}`;
+    }
+
+    async function loadAvailableTimes() {
+        const date = $('#date-select').value;
+        const barber = $('#barber-select').value;
+        const container = $('#time-slots');
+        container.innerHTML = '';
+        
+        if (!date || !barber) return;
+
+        try {
+            const response = await fetch(`${API_URL}/availability?date=${date}&barber=${barber}`);
+            if (!response.ok) throw new Error('Falha ao carregar disponibilidade.');
+            
+            const bookedTimes = (await response.json()).map(item => item.time);
+            
+            // Horários da Barbearia (Exemplo: 9:00h às 18:00h, a cada 30 minutos)
+            const ALL_TIMES = [];
+            for(let h = 9; h < 18; h++) {
+                ALL_TIMES.push(`${String(h).padStart(2, '0')}:00`);
+                if (h < 17) ALL_TIMES.push(`${String(h).padStart(2, '0')}:30`); 
+            }
+
+            ALL_TIMES.forEach(time => {
+                const isBooked = bookedTimes.includes(time);
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.innerText = time;
+                button.classList.add('time-slot', 'p-2', 'rounded', 'shadow-md', 'transition-colors', 'text-sm', 'w-full');
+                
+                if (isBooked) {
+                    button.classList.add('bg-danger', 'text-white', 'cursor-not-allowed', 'opacity-50');
+                    button.disabled = true;
+                } else {
+                    button.classList.add('bg-card', 'hover:bg-gold', 'hover:text-dark');
+                    button.onclick = () => selectTime(button, time);
+                }
+                container.appendChild(button);
+            });
+
+            // Reativa a função de seleção de horário
+            selectTime(null, null);
+
+        } catch (error) {
+            console.error('Erro ao buscar horários:', error);
+            alert('Não foi possível carregar a disponibilidade. Tente novamente.');
+        }
+    }
+
+    function selectTime(selectedButton, time) {
+        $$('.time-slot').forEach(btn => btn.classList.remove('border-2', 'border-gold'));
+        if (selectedButton) {
+            selectedButton.classList.add('border-2', 'border-gold');
+            $('#time-input').value = time;
+        } else {
+            $('#time-input').value = ''; // Limpa a seleção se a função for chamada sem botão (ex: ao recarregar a lista)
+        }
+    }
+    
+    async function handleAppointment(e) {
+        e.preventDefault();
+
+        const barberName = $('#barber-select').value;
+        const servicesChecked = $$('input[name="service"]:checked');
+        const services = Array.from(servicesChecked).map(c => c.value).join(', ');
+        const date = $('#date-select').value;
+        const time = $('#time-input').value;
+        const totalText = $('#total-value').innerText.replace('R$ ', '').replace(',', '.');
+        const total = parseFloat(totalText);
+
+        if (!barberName || !services || !date || !time || total === 0) {
+            return alert('Por favor, preencha todos os campos e selecione pelo menos um serviço.');
+        }
+
+        const appointmentData = {
+            barber_name: barberName,
+            services: services,
+            date: date,
+            time: time,
+            total: total
         };
 
-        // ... [Restante das funções de Login/Logout] ...
-        
-        function toggleAuthMode() {
-            const loginForm = document.getElementById('login-form');
-            const regForm = document.getElementById('register-form');
-            loginForm.classList.toggle('hidden');
-            regForm.classList.toggle('hidden');
-        }
+        try {
+            const response = await fetch(`${API_URL}/appointments`, {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${currentToken}`
+                },
+                body: JSON.stringify(appointmentData)
+            });
 
-        function handleRegister() {
-            const name = document.getElementById('reg-name').value;
-            const email = document.getElementById('reg-email').value;
-            const pass = document.getElementById('reg-pass').value;
+            const data = await response.json();
 
-            if(!name || !email || !pass) return alert("Preencha todos os campos.");
-
-            // Verifica se usuário já existe
-            const users = JSON.parse(localStorage.getItem('barberUsers') || '[]');
-            if(users.find(u => u.email === email)) {
-                return alert("Email já cadastrado.");
-            }
-
-            // Cria novo usuário
-            const newUser = { name, email, pass };
-            users.push(newUser);
-            localStorage.setItem('barberUsers', JSON.stringify(users));
-
-            alert("Conta criada com sucesso! Faça login.");
-            toggleAuthMode();
-        }
-
-        function handleLogin() {
-            const email = document.getElementById('login-email').value;
-            const pass = document.getElementById('login-pass').value;
-
-            const users = JSON.parse(localStorage.getItem('barberUsers') || '[]');
-            const user = users.find(u => u.email === email && u.pass === pass);
-
-            if(user) {
-                // Login Sucesso
-                loginUser(user);
+            if (response.ok) {
+                alert('Agendamento confirmado com sucesso!');
+                e.target.reset(); // Limpa o formulário
+                loadAvailableTimes(); // Recarrega horários
+                renderHistory(); // Atualiza histórico
             } else {
-                alert("Email ou senha incorretos.");
+                alert(`Erro ao agendar: ${data.message || 'Horário já reservado por outro cliente.'}`);
             }
+        } catch (error) {
+            console.error('Erro de rede:', error);
+            alert('Erro ao conectar com o servidor. Tente novamente.');
         }
-
-        function loginUser(user) {
-            currentUser = user;
-            localStorage.setItem('barberCurrentUser', JSON.stringify(user));
-            
-            // --- LÓGICA DE REDIRECIONAMENTO DO ADMIN ---
-            if (user.email === 'Barbeiro2003@gmail.com') {
-                window.location.href = 'painel.html'; 
-                return; 
-            }
-            // -------------------------------------------
-
-            // Atualiza UI normal
-            document.getElementById('user-name-display').innerText = user.name;
-            document.getElementById('mobile-user-display').innerText = `Olá, ${user.name.split(' ')[0]}`;
-            document.getElementById('user-avatar').innerText = user.name.charAt(0).toUpperCase();
-
-            // Troca Telas
-            document.getElementById('auth-screen').classList.add('hidden');
-            document.getElementById('app-screen').classList.remove('hidden');
-            document.getElementById('app-screen').classList.add('flex');
-            
-            renderHistory();
-            renderLoyaltyCard(); // Renderiza o cartão fidelidade
-            switchTab('home');
-        }
+    }
 
 
-        function checkLogin() {
-            const savedUser = localStorage.getItem('barberCurrentUser');
-            if(savedUser) {
-                loginUser(JSON.parse(savedUser));
-            } else {
-                document.getElementById('app-screen').classList.remove('flex');
-                document.getElementById('app-screen').classList.add('hidden');
-                document.getElementById('auth-screen').classList.remove('hidden');
-            }
-        }
+    // --- HISTÓRICO E FIDELIDADE (MIGRADO PARA A API) ---
 
-        function logout() {
-            if(confirm("Deseja realmente sair?")) {
-                localStorage.removeItem('barberCurrentUser');
-                currentUser = null;
-                location.reload(); // Recarrega para limpar estado
-            }
-        }
+    async function renderHistory() {
+        const historyList = $('#history-list');
+        const loyaltyScore = $('#loyalty-score');
+        historyList.innerHTML = '<tr><td colspan="5" class="text-center p-4 text-gray-400">Carregando histórico...</td></tr>';
 
-        // --- SISTEMA DA BARBEARIA ---
-
-        function switchTab(tabId) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-            document.querySelectorAll('.nav-item').forEach(el => {
-                el.classList.remove('text-gold', 'bg-gray-800');
-                el.classList.add('text-gray-400');
-                if(window.innerWidth >= 768) el.classList.add('md:bg-transparent');
-            });
-            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
-            const activeBtn = document.getElementById(`nav-${tabId}`);
-            activeBtn.classList.remove('text-gray-400', 'md:bg-transparent');
-            activeBtn.classList.add('text-gold', 'bg-gray-800');
-            
-            if (tabId === 'historico') {
-                renderHistory();
-            }
-        }
-
-        function renderBarbers() {
-            const container = document.getElementById('barber-list');
-            container.innerHTML = barbers.map(barber => `
-                <label class="cursor-pointer group relative">
-                    <input type="radio" name="barber" value="${barber.id}" class="peer sr-only" onchange="selectedBarber = ${barber.id}; loadAvailableDates();">
-                    <div class="bg-card border-2 border-transparent p-4 rounded-xl text-center hover:bg-gray-800 transition-all peer-checked:border-gold peer-checked:bg-gray-800">
-                        <img src="${barber.img}" class="w-16 h-16 rounded-full mx-auto mb-3 object-cover border-2 border-gray-700 peer-checked:border-gold">
-                        <h4 class="font-bold text-white text-sm">${barber.name}</h4>
-                        <div class="text-gold text-xs mt-1"><i class="fa-solid fa-star"></i> ${barber.rating}</div>
-                    </div>
-                </label>
-            `).join('');
-        }
-        
-        // NOVO: Função para carregar apenas as datas com horário ativo
-        function loadAvailableDates() {
-            // 1. Resetar o select de datas e horários
-            selectedTime = null;
-            document.getElementById('time-slots').innerHTML = '<p class="text-gray-500 text-sm col-span-4 italic">Selecione uma data acima.</p>';
-            
-            const dateSelect = document.getElementById('date-select');
-            dateSelect.innerHTML = '<option value="" disabled selected>Carregando datas...</option>';
-
-            if (!selectedBarber) {
-                dateSelect.innerHTML = '<option value="" disabled selected>Escolha o profissional primeiro</option>';
-                return;
-            }
-            
-            const barberObj = barbers.find(b => b.id === selectedBarber);
-            const barberName = barberObj.name;
-            const today = new Date().setHours(0,0,0,0); // Data de hoje à meia-noite
-
-            // 2. Coletar datas ativas no LocalStorage
-            const availableDates = [];
-            for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i);
-                // Busca por chaves do formato scheduleConfig_YYYY-MM-DD_BarberName
-                if (key.startsWith('scheduleConfig_') && key.endsWith(`_${barberName}`)) {
-                    const dateStr = key.split('_')[1];
-                    const activeSlots = JSON.parse(localStorage.getItem(key));
-                    
-                    const dateObj = new Date(`${dateStr}T00:00:00`);
-                    
-                    // Verifica se há slots ativos E se a data não é passada
-                    if (activeSlots && activeSlots.length > 0 && dateObj >= today) {
-                        availableDates.push(dateStr);
-                    }
-                }
-            }
-            
-            // 3. Ordenar datas e popular o select
-            availableDates.sort();
-            
-            dateSelect.innerHTML = '<option value="" disabled selected>Selecione a Data</option>';
-
-            availableDates.forEach(dateStr => {
-                const dateObj = new Date(dateStr);
-                const displayDate = dateObj.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
-                const weekday = dateObj.toLocaleDateString('pt-BR', { weekday: 'short' });
-
-                const option = document.createElement('option');
-                option.value = dateStr; // YYYY-MM-DD para consistência
-                option.textContent = `${displayDate} (${weekday})`;
-                dateSelect.appendChild(option);
+        try {
+            const response = await fetch(`${API_URL}/history`, {
+                headers: { 'Authorization': `Bearer ${currentToken}` }
             });
             
-            if (availableDates.length === 0) {
-                dateSelect.innerHTML = '<option value="" disabled selected>Sem datas disponíveis!</option>';
-            }
-        }
-
-
-        function renderServices() {
-            const container = document.getElementById('services-list');
-            container.innerHTML = services.map(service => `
-                <label class="cursor-pointer relative block">
-                    <input type="checkbox" value="${service.id}" class="peer sr-only service-checkbox" onchange="toggleService('${service.id}', '${service.name}', ${service.price})">
-                    <div class="bg-card border border-gray-700 p-4 rounded-lg flex justify-between items-center transition-all hover:bg-gray-800">
-                        <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center text-gold"><i class="fa-solid ${service.icon}"></i></div>
-                            <div>
-                                <h4 class="font-bold text-white text-sm">${service.name}</h4>
-                                <p class="text-xs text-gray-400">R$ ${service.price.toFixed(2).replace('.', ',')}</p>
-                            </div>
-                        </div>
-                        <div class="w-5 h-5 rounded-full border border-gray-500 peer-checked:bg-gold peer-checked:border-gold"></div>
-                    </div>
-                </label>
-            `).join('');
-        }
-
-        function toggleService(id, name, price) {
-            const index = selectedServices.findIndex(s => s.id === id);
-            if (index > -1) selectedServices.splice(index, 1);
-            else selectedServices.push({ id, name, price });
-        }
-        
-        // --- LÓGICA DE ESCALA E ANTI-CONFLITO ---
-        function getGlobalBookings(date, barberName) {
-            const allUsers = JSON.parse(localStorage.getItem('barberUsers') || '[]');
-            let bookedTimes = [];
-
-            allUsers.forEach(user => {
-                const hKey = `barberHistory_${user.email}`;
-                const uHistory = JSON.parse(localStorage.getItem(hKey) || '[]');
-                
-                // Filtra agendamentos ativos na data e com o barbeiro
-                const matches = uHistory.filter(h => 
-                    h.date === date && 
-                    h.barber === barberName && 
-                    h.status !== 'Cancelado'
-                );
-                
-                matches.forEach(m => bookedTimes.push(m.time));
-            });
-
-            return bookedTimes;
-        }
-
-        // FUNÇÃO ATUALIZADA: Lê a data do novo select
-        function renderTimeSlots() {
-            const dateSelect = document.getElementById('date-select');
-            const date = dateSelect.value;
-            const container = document.getElementById('time-slots');
-            selectedTime = null; // Reseta o horário selecionado
-
+            if (!response.ok) throw new Error('Falha ao carregar histórico');
             
-            if(!date) return;
-            if(!selectedBarber) {
-                container.innerHTML = '<p class="text-red-400 text-sm col-span-4">Selecione um profissional primeiro.</p>';
-                return;
-            }
-
-            const barberObj = barbers.find(b => b.id === selectedBarber);
-            const defaultSlots = ['09:00', '10:00', '11:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00'];
-
-            // 1. Verifica CONFIGURAÇÃO DO BARBEIRO (Lê a escala para a data selecionada)
-            const scheduleKey = `scheduleConfig_${date}_${barberObj.name}`;
-            const adminConfig = JSON.parse(localStorage.getItem(scheduleKey));
+            const history = await response.json();
             
-            // Slots que o admin marcou como disponíveis (ou todos por padrão)
-            const availableSlots = adminConfig !== null ? adminConfig : defaultSlots;
-
-            if(availableSlots.length === 0) {
-                container.innerHTML = '<div class="col-span-4 text-center py-4 bg-gray-800 rounded text-gray-400">Profissional não atenderá neste horário.</div>';
-                return;
-            }
-
-            // 2. Verifica AGENDAMENTOS GLOBAIS (Anti-Conflito)
-            const bookedTimes = getGlobalBookings(date, barberObj.name);
-
-            // Renderiza
-            container.innerHTML = defaultSlots.map(time => { 
-                const isTaken = bookedTimes.includes(time);
-                const isAdminBlocked = !availableSlots.includes(time);
-                
-                // Verifica se é uma data de hoje, e se o horário já passou
-                const isToday = new Date().toISOString().split('T')[0] === date;
-                const isPast = isToday && new Date(`${date}T${time}`) < new Date();
-
-                const isUnavailable = isTaken || isAdminBlocked || isPast;
-                
-                if (isUnavailable) {
-                    let title = isPast ? "Horário já passou" : (isTaken ? "Ocupado por outro cliente" : "Bloqueado pelo profissional");
-                    
-                    return `
-                        <div class="text-center py-2 rounded border border-gray-800 bg-gray-900 text-gray-600 text-sm line-through cursor-not-allowed" title="${title}">
-                            ${time}
-                        </div>
-                    `;
-                } else {
-                    // Horário Livre
-                    return `
-                        <label class="cursor-pointer">
-                            <input type="radio" name="time" value="${time}" class="peer sr-only time-radio" onchange="selectedTime = '${time}'">
-                            <div class="text-center py-2 rounded border border-gray-700 text-gray-300 text-sm hover:border-gold transition-colors peer-checked:bg-gold peer-checked:text-darker peer-checked:font-bold">
-                                ${time}
-                            </div>
-                        </label>
-                    `;
-                }
-            }).join('');
-        }
-        // --- FIM LÓGICA DE ESCALA E ANTI-CONFLITO ---
-
-
-        function confirmarAgendamento() {
-            if (!selectedBarber) return alert("Selecione um barbeiro.");
-            if (selectedServices.length === 0) return alert("Selecione um serviço.");
-            
-            // LÊ A DATA DO NOVO SELECT
-            const date = document.getElementById('date-select').value;
-            if (!date) return alert("Selecione uma data.");
-            
-            if (!selectedTime) return alert("Selecione um horário.");
-
-            const barberObj = barbers.find(b => b.id === selectedBarber);
-            const total = selectedServices.reduce((acc, curr) => acc + curr.price, 0);
-
-            // NOVO: Verifica Anti-Conflito no momento da confirmação (segunda checagem)
-            const booked = getGlobalBookings(date, barberObj.name);
-            if (booked.includes(selectedTime)) {
-                 return alert("Este horário acabou de ser reservado por outro cliente. Por favor, escolha outro horário.");
-            }
-
-            const appointment = {
-                id: Date.now(),
-                barber: barberObj.name,
-                barberImg: barberObj.img,
-                services: selectedServices.map(s => s.name).join(', '),
-                date: date,
-                time: selectedTime,
-                total: total,
-                status: 'Confirmado'
-            };
-
-            // Salva no histórico DO USUÁRIO ATUAL
-            const storageKey = `barberHistory_${currentUser.email}`;
-            const history = JSON.parse(localStorage.getItem(storageKey) || '[]');
-            history.unshift(appointment);
-            localStorage.setItem(storageKey, JSON.stringify(history));
-
-            document.getElementById('success-modal').classList.remove('hidden');
-        }
-
-        function fecharModal() {
-            document.getElementById('success-modal').classList.add('hidden');
-            document.getElementById('booking-form').reset();
-            selectedBarber = null;
-            selectedServices = [];
-            selectedTime = null;
-            
-            // RECARREGA OS SELECTS APÓS O AGENDAMENTO
-            document.getElementById('date-select').innerHTML = '<option value="" disabled selected>Escolha o profissional primeiro</option>';
-            document.getElementById('time-slots').innerHTML = '<p class="text-gray-500 text-sm col-span-4 italic">Selecione uma data primeiro.</p>';
-            
-            renderLoyaltyCard(); // Renderiza fidelidade
-            renderHistory();
-            switchTab('historico');
-        }
-
-        // Função para remover um agendamento específico
-        function removeAppointment(id) {
-            if (!currentUser) return;
-            if (!confirm("Deseja realmente remover este agendamento?")) return;
-
-            const storageKey = `barberHistory_${currentUser.email}`;
-            let history = JSON.parse(localStorage.getItem(storageKey) || '[]');
-            
-            // NOVO: Se o agendamento não estiver cancelado, ele é removido. 
-            // Se estiver cancelado, a remoção é feita automaticamente pelo timer.
-            const item = history.find(h => h.id === id);
-            if (item && item.status !== 'Cancelado') {
-                history = history.filter(h => h.id !== id);
-                localStorage.setItem(storageKey, JSON.stringify(history));
-                
-                renderLoyaltyCard(); // Atualiza fidelidade
-                renderHistory();
-                alert("Agendamento removido.");
-            } else if (item && item.status === 'Cancelado') {
-                alert("Este agendamento já está em processo de remoção automática.");
-            }
-        }
-        
-        // --- NOVO: LÓGICA DE EDIÇÃO DE 5 MINUTOS ---
-        function editAppointment(id) {
-            if(!confirm("Você tem 5 minutos para editar. Confirmar edição? O agendamento atual será temporariamente removido para que você possa refazê-lo.")) return;
-
-            // 1. Recupera o agendamento
-            const storageKey = `barberHistory_${currentUser.email}`;
-            let history = JSON.parse(localStorage.getItem(storageKey) || '[]');
-            const item = history.find(h => h.id === id);
-
-            if(!item) return;
-
-            // 2. Remove o item para permitir que o novo seja salvo limpo
-            history = history.filter(h => h.id !== id);
-            localStorage.setItem(storageKey, JSON.stringify(history));
-            
-            selectedServices = []; // Limpa serviços globais
-
-            // 3. Preenche o formulário
-            selectedBarber = barbers.find(b => b.name === item.barber).id;
-            
-            // 4. Redireciona e força a renderização
-            switchTab('agendar');
-            renderBarbers(); 
-            
-            const barberRadio = document.querySelector(`input[name="barber"][value="${selectedBarber}"]`);
-            if(barberRadio) {
-                 barberRadio.checked = true;
-                 barberRadio.dispatchEvent(new Event('change')); // Chama loadAvailableDates()
-            }
-
-            // Atraso necessário para o loadAvailableDates() popular o select antes de tentar selecionar o valor
-            setTimeout(() => {
-                const dateSelect = document.getElementById('date-select');
-                dateSelect.value = item.date;
-                dateSelect.dispatchEvent(new Event('change')); // Chama renderTimeSlots()
-
-                // Tenta pré-selecionar os serviços 
-                item.services.split(', ').forEach(serviceName => {
-                    const service = services.find(s => s.name === serviceName);
-                    if (service) {
-                        const checkbox = document.querySelector(`input[type="checkbox"][value="${service.id}"]`);
-                        if (checkbox) {
-                            checkbox.checked = true;
-                            toggleService(service.id, service.name, service.price); // Atualiza selectedServices
-                        }
-                    }
-                });
-                
-                // Tenta pré-selecionar o horário (renderTimeSlots() já foi chamada)
-                selectedTime = item.time;
-                const timeRadio = document.querySelector(`input[name="time"][value="${selectedTime}"]`);
-                if(timeRadio) timeRadio.checked = true;
-                
-            }, 300); // 300ms de atraso para garantir o carregamento do select.
-
-            alert("Dados do agendamento carregados. Você tem 5 minutos para fazer correções na data/horário/serviços e clicar em CONFIRMAR AGENDAMENTO novamente.");
-        }
-
-        // --- RENDERIZA CARTÃO FIDELIDADE (EXISTENTE) ---
-        function renderLoyaltyCard() {
-            if(!currentUser) return;
-            
-            const storageKey = `barberHistory_${currentUser.email}`;
-            const history = JSON.parse(localStorage.getItem(storageKey) || '[]');
-            
-            const totalCompleted = history.filter(h => h.status === 'Concluído').length; 
-            const count = totalCompleted % 10;
-            
-            document.getElementById('loyalty-count').innerText = `${count}/10`;
-            document.getElementById('loyalty-bar').style.width = `${(count / 10) * 100}%`;
-            
-            let stampsHTML = '';
-            for(let i=1; i<=10; i++) {
-                const isStamped = i <= count || (totalCompleted >= 10 && i === 10 && count === 0);
-                
-                stampsHTML += `
-                    <div class="w-full aspect-square rounded-full flex items-center justify-center text-[10px] font-bold shadow 
-                        ${isStamped ? 'bg-gold text-darker' : 'bg-gray-800 border border-gray-700 text-gray-600'}"
-                        title="${isStamped ? 'Concluído' : i}">
-                        ${isStamped ? '<i class="fa-solid fa-scissors"></i>' : i}
-                    </div>
-                `;
-            }
-            document.getElementById('loyalty-stamps').innerHTML = stampsHTML;
-        }
-
-
-        // FUNÇÃO ATUALIZADA: RENDERIZA HISTÓRICO (COM BLUR E TIMER DE CANCELAMENTO)
-        function renderHistory() {
-            if(!currentUser) return;
-            const storageKey = `barberHistory_${currentUser.email}`;
-            let history = JSON.parse(localStorage.getItem(storageKey) || '[]');
-            const container = document.getElementById('history-list');
-
-            // 1. Limpeza Automática: Remove itens cancelados há mais de 24h
-            const now = new Date().getTime();
-            const oneDay = 24 * 60 * 60 * 1000; // 24 horas em milissegundos
-            
-            const initialLength = history.length;
-            history = history.filter(item => {
-                if (item.status === 'Cancelado' && item.canceledAt) {
-                    const cancelTime = new Date(item.canceledAt).getTime();
-                    // Se passou de 24h, remove do array (retorna false)
-                    return (now - cancelTime) < oneDay;
-                }
-                return true; // Mantém os não cancelados ou sem data definida
-            });
-
-            // Se houve remoção, atualiza o LocalStorage
-            if (history.length !== initialLength) {
-                localStorage.setItem(storageKey, JSON.stringify(history));
-            }
-
             if (history.length === 0) {
-                container.innerHTML = `<div class="text-center py-20 opacity-50"><i class="fa-regular fa-calendar-xmark text-4xl mb-4"></i><p>Nenhum agendamento encontrado.</p></div>`;
+                historyList.innerHTML = '<tr><td colspan="5" class="text-center p-4 text-gray-400">Nenhum agendamento encontrado.</td></tr>';
+                loyaltyScore.innerText = '0';
                 return;
             }
 
-            container.innerHTML = history.map(item => {
-                const dateObj = new Date(item.date);
-                dateObj.setMinutes(dateObj.getMinutes() + dateObj.getTimezoneOffset());
-                const dateFormatted = dateObj.toLocaleDateString('pt-BR');
+            // Cálculo do score de fidelidade
+            const completedAppointments = history.filter(apt => apt.status === 'Concluído').length;
+            loyaltyScore.innerText = completedAppointments;
 
-                // Lógica de Renderização do Cancelado
-                const isCanceled = item.status === 'Cancelado';
-                const isConcluido = item.status === 'Concluído';
+            // Renderiza a tabela
+            historyList.innerHTML = history.map(apt => {
+                let statusBadge;
+                let actionButton = '';
+                const dateDisplay = new Date(apt.date + 'T' + apt.time).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }) + ' às ' + apt.time;
                 
-                // CÁLCULO PARA EDIÇÃO (5 minutos = 300000 ms)
-                const createdTime = item.id; 
-                const timeDiff = new Date().getTime() - createdTime;
-                const canEdit = timeDiff < 300000 && !isCanceled && !isConcluido; 
-                
-                // Define o tempo limite para o contador (Data Cancelamento + 24h)
-                let dataExpirationAttribute = '';
-                if (isCanceled && item.canceledAt) {
-                    const expirationTime = new Date(item.canceledAt).getTime() + oneDay;
-                    dataExpirationAttribute = `data-expires="${expirationTime}"`;
+                switch(apt.status) {
+                    case 'Confirmado':
+                        statusBadge = '<span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-600 text-white">Confirmado</span>';
+                        actionButton = `
+                            <button onclick="cancelAppointment(${apt.id})" title="Cancelar Agendamento" class="px-3 py-1 text-xs bg-red-600 hover:bg-red-500 rounded text-white transition-colors">
+                                Cancelar
+                            </button>`;
+                        break;
+                    case 'Concluído':
+                        statusBadge = '<span class="px-2 py-1 text-xs font-semibold rounded-full bg-success text-white">Concluído</span>';
+                        break;
+                    case 'Cancelado':
+                        statusBadge = '<span class="px-2 py-1 text-xs font-semibold rounded-full bg-danger text-white">Cancelado</span>';
+                        break;
+                    default:
+                        statusBadge = apt.status;
                 }
-                
-                let statusClass = 'text-blue-500';
-                if(isCanceled) statusClass = 'text-red-500';
-                if(isConcluido) statusClass = 'text-green-500';
 
                 return `
-                <div class="relative overflow-hidden rounded-r-lg shadow-lg group transition-all duration-300 ${isCanceled ? 'border-l-4 border-red-600' : 'bg-card border-l-4 border-gold'}">
-                    
-                    ${isCanceled ? `
-                        <div class="absolute inset-0 z-30 flex flex-col items-center justify-center bg-darker/80 backdrop-blur-sm text-center p-4">
-                            <h3 class="text-red-500 font-display text-2xl font-bold uppercase tracking-wider mb-2">Serviço Cancelado</h3>
-                            <p class="text-gray-300 text-sm mb-1">Este agendamento será removido em:</p>
-                            <div class="font-mono text-gold text-xl font-bold cancellation-timer" ${dataExpirationAttribute}>
-                                Calculando...
-                            </div>
-                        </div>
-                    ` : ''}
+                    <tr class="border-t border-input hover:bg-card">
+                        <td class="p-3 text-sm">${apt.barber_name}</td>
+                        <td class="p-3 text-sm">${dateDisplay}</td>
+                        <td class="p-3 text-sm">${apt.services}</td>
+                        <td class="p-3 text-sm">${statusBadge}</td>
+                        <td class="p-3 text-sm text-right">${actionButton}</td>
+                    </tr>
+                `;
+            }).join('');
 
-                    <div class="p-7 flex justify-between items-center relative z-10 ${isCanceled ? 'opacity-30 pointer-events-none' : ''}">
-                        
-                        ${!isCanceled ? `
-                        <button onclick="removeAppointment(${item.id})" class="absolute top-1 right-1 w-4 h-4 bg-red-600 hover:bg-red-500 text-white rounded-full flex items-center justify-center shadow z-20" title="Remover agendamento" aria-label="Remover agendamento">
-                            <i class="fa-solid fa-xmark"></i>
-                        </button>
-                        ` : ''}
-                        
-                        ${canEdit ? `
-                            <button onclick="editAppointment(${item.id})" class="absolute bottom-4 right-4 text-xs bg-gray-700 hover:bg-white hover:text-darker text-white px-3 py-1 rounded transition-colors shadow z-20 flex items-center gap-1">
-                                <i class="fa-solid fa-pen"></i> Editar (5min)
-                            </button>
-                        ` : ''}
-                        
 
-                        <div class="flex items-center gap-4">
-                            <img src="${item.barberImg}" class="w-12 h-12 rounded-full border border-gray-600">
-                            <div>
-                                <h4 class="font-bold text-white text-lg">${item.barber}</h4>
-                                <p class="text-gray-400 text-sm">${item.services}</p>
-                                <div class="flex items-center gap-3 mt-2 text-xs font-mono text-gold">
-                                    <span class="bg-gray-800 px-2 py-1 rounded"><i class="fa-regular fa-calendar"></i> ${dateFormatted}</span>
-                                    <span class="bg-gray-800 px-2 py-1 rounded"><i class="fa-regular fa-clock"></i> ${item.time}</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="text-right">
-                            <span class="block text-xl font-bold text-white">R$ ${item.total.toFixed(2).replace('.', ',')}</span>
-                            <span class="text-xs ${statusClass} font-bold uppercase tracking-wider">${item.status}</span>
-                        </div>
-                    </div>
-                    
-                    ${!isCanceled ? `<div class="absolute inset-0 bg-gradient-to-r from-transparent to-gray-800 opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-0"></div>` : ''}
-                </div>
-            `}).join('');
-
-            // Inicia o contador JS se houver itens cancelados
-            startCancellationTimer();
+        } catch (error) {
+            console.error('Erro ao carregar histórico:', error);
+            historyList.innerHTML = '<tr><td colspan="5" class="text-center p-4 text-danger">Erro ao carregar histórico.</td></tr>';
         }
+    }
 
-        // Função auxiliar para atualizar o contador regressivo em tempo real
-        function startCancellationTimer() {
-            // Limpa intervalo anterior se existir para não duplicar
-            if (window.cancellationInterval) clearInterval(window.cancellationInterval);
+    async function cancelAppointment(aptId) {
+        if (!confirm('Tem certeza que deseja cancelar este agendamento?')) return;
 
-            window.cancellationInterval = setInterval(() => {
-                const timers = document.querySelectorAll('.cancellation-timer');
-                
-                if (timers.length === 0) {
-                    // Se não há mais timers, para o intervalo para economizar recursos
-                    clearInterval(window.cancellationInterval);
-                    window.cancellationInterval = null;
-                    return;
-                }
+        try {
+            const response = await fetch(`${API_URL}/appointments/status/${aptId}`, {
+                method: 'PUT',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${currentToken}`
+                },
+                body: JSON.stringify({ status: 'Cancelado' })
+            });
 
-                timers.forEach(timer => {
-                    const expiresAt = parseInt(timer.getAttribute('data-expires'));
-                    const now = new Date().getTime();
-                    const distance = expiresAt - now;
+            const data = await response.json();
 
-                    if (distance < 0) {
-                        // Tempo acabou: Recarrega a lista (o filtro inicial da renderHistory vai remover o item)
-                        renderHistory();
-                    } else {
-                        // Calcula horas, minutos e segundos
-                        const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                        const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-                        const seconds = Math.floor((distance % (1000 * 60)) / 1000);
-
-                        timer.innerText = `${String(hours).padStart(2, '0')}h ${String(minutes).padStart(2, '0')}m ${String(seconds).padStart(2, '0')}s`;
-                    }
-                });
-            }, 1000);
+            if (response.ok) {
+                alert('Agendamento cancelado com sucesso.');
+                renderHistory(); 
+            } else {
+                alert(`Falha ao cancelar: ${data.message || 'Erro desconhecido.'}`);
+            }
+        } catch (error) {
+            console.error('Erro de rede:', error);
+            alert('Erro ao conectar com o servidor. Tente novamente.');
         }
-    </script>
+    }
+
+
+    // --- INICIALIZAÇÃO ---
+
+    document.addEventListener('DOMContentLoaded', () => {
+        // Inicializa a data para hoje
+        const today = new Date().toISOString().split('T')[0];
+        $('#date-select').setAttribute('min', today);
+        $('#date-select').value = today;
+
+        initBarbers();
+        initServices();
+        checkAuth(); // Verifica o login ao carregar a página
+        loadAvailableTimes(); // Carrega os horários iniciais
+        
+        // Listeners
+        $('#login-form').addEventListener('submit', handleLogin);
+        $('#register-form').addEventListener('submit', handleRegister);
+        $('#appointment-form').addEventListener('submit', handleAppointment);
+        $('#barber-select').addEventListener('change', loadAvailableTimes);
+        $('#date-select').addEventListener('change', loadAvailableTimes);
+        $('#logout-btn').addEventListener('click', logout);
+    });
+</script>
 </body>
 </html>
