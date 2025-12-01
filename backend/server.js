@@ -5,7 +5,7 @@ const md5 = require('md5');
 const jwt = require('jsonwebtoken');
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000; 
 const SECRET_KEY = "chave_secreta_barbearia_marcos"; // Em produção, usar variável de ambiente
 
 app.use(express.json());
